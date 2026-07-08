@@ -27,6 +27,7 @@
 # Usage (on a machine with the IRON toolchain + NPU):
 #   python3 gru_cell_encoder.py
 #
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -34,6 +35,8 @@ from ml_dtypes import bfloat16
 
 import aie.iron as iron
 from aie.iron import CompileTime, ExternalFunction, In, ObjectFifo, Out, Program, Runtime, Worker
+from aie.utils.hostruntime.argparse import add_compile_args, device_from_args
+from aie.utils.hostruntime.cli import run_design_cli
 
 _KERNEL_SRC = str(Path(__file__).parent / "kernels" / "gru_cell.cc")
 
@@ -144,7 +147,29 @@ def _load_inputs_from_checkpoint():
     return x_in, h_prev, params
 
 
-def main():
+def _make_argparser():
+    p = argparse.ArgumentParser(prog="FLAIR GRU-cell encoder (AIE)")
+    # add_compile_args gives us -d/--dev, --xclbin-path, --insts-path.
+    # Compile-only mode (what the WSL Makefile / buildHostWin flow uses)
+    # is triggered by passing --xclbin-path; it needs --dev because WSL
+    # has no attached NPU to auto-detect. This machine is a Ryzen 7940HS
+    # (Phoenix / XDNA1 / AIE2), so the device is "npu" (not "npu2").
+    add_compile_args(p)
+    p.add_argument("--input-dim", type=int, default=INPUT_DIM)
+    p.add_argument("--hidden-dim", type=int, default=HIDDEN_DIM)
+    return p
+
+
+def _compile_kwargs(opts):
+    return dict(input_dim=opts.input_dim, hidden_dim=opts.hidden_dim)
+
+
+def _run_and_verify(opts):
+    """Pure-Python JIT-and-run path. Only usable where an NPU is visible to
+    Python (native Windows / native Linux) -- NOT in WSL, which cannot see
+    the NPU. In the WSL compile-only flow this function is never called;
+    run_design_cli dispatches to compile-only whenever --xclbin-path is set.
+    """
     x_in, h_prev, params = _load_inputs_from_checkpoint()
 
     x_t = iron.tensor(x_in, dtype=bfloat16, device="npu")
@@ -152,11 +177,25 @@ def main():
     params_t = iron.tensor(params, dtype=bfloat16, device="npu")
     hnext_t = iron.zeros(HIDDEN_DIM, dtype=bfloat16, device="npu")
 
-    gru_cell_encoder(x_t, h_t, params_t, hnext_t)
+    gru_cell_encoder(
+        x_t, h_t, params_t, hnext_t,
+        input_dim=opts.input_dim, hidden_dim=opts.hidden_dim,
+    )
 
     print("h_next (NPU):", hnext_t.numpy())
     # Compare against npu/verify_gru_cell_math.py's golden output for the
     # same checkpoint + first timestep to confirm end-to-end correctness.
+
+
+def main():
+    opts = _make_argparser().parse_args()
+    run_design_cli(
+        gru_cell_encoder,
+        opts,
+        compile_kwargs=_compile_kwargs,
+        run_and_verify=_run_and_verify,
+        device=device_from_args,
+    )
 
 
 if __name__ == "__main__":
