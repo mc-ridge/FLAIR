@@ -35,10 +35,47 @@ from ml_dtypes import bfloat16
 
 import aie.iron as iron
 from aie.iron import CompileTime, ExternalFunction, In, ObjectFifo, Out, Program, Runtime, Worker
+from aie.utils import config
 from aie.utils.hostruntime.argparse import add_compile_args, device_from_args
 from aie.utils.hostruntime.cli import run_design_cli
 
-_KERNEL_SRC = str(Path(__file__).parent / "kernels" / "gru_cell.cc")
+_KERNEL_SRC = Path(__file__).parent / "kernels" / "gru_cell.cc"
+
+
+def _make_gru_kernel(arg_types, compile_flags):
+    """Build the gru_cell ExternalFunction with the include wiring the aie2
+    LUT kernels rely on.
+
+    The JIT copies the kernel source into build/<name>.prj/ before compiling,
+    so relative includes in gru_cell.cc break. Instead we:
+      * pass explicit -I dirs (wheel's aie_kernels for aie_kernel_utils.h,
+        aie_runtime_lib/AIE2 for lut_based_ops.h), and
+      * wrap the kernel in a TU that also #includes lut_based_ops.cpp by
+        absolute path, so getTanhBf16's tanh_lut_ab/cd tables are defined
+        (otherwise: undefined-symbol link error).
+
+    This mirrors aie.iron.kernels.activation._create_lut_kernel's aie2 path.
+    Hardcoded to AIE2 because this design targets Phoenix (XDNA1) and the
+    kernel uses the AIE2 getTanhBf16 primitive.
+    """
+    header_base = Path(config.cxx_header_path())
+    runtime_dir = Path(config.root_path()) / "aie_runtime_lib" / "AIE2"
+    lut_cpp = runtime_dir / "lut_based_ops.cpp"
+
+    include_dirs = [
+        str(header_base),                    # aie_api/aie.hpp etc.
+        str(header_base / "aie_kernels"),    # aie_kernel_utils.h
+        str(runtime_dir),                    # lut_based_ops.h
+    ]
+    source = f'#include "{_KERNEL_SRC}"\n#include "{lut_cpp}"\n'
+
+    return ExternalFunction(
+        "gru_cell_encoder_bf16",
+        source_string=source,
+        arg_types=arg_types,
+        include_dirs=include_dirs,
+        compile_flags=compile_flags,
+    )
 
 # Dims from the trained checkpoint (experiments/results/flair_minimal.pt):
 # encoder.gru.weight_ih_l0: (192, 45) -> INPUT_DIM=45, HIDDEN_DIM=64
@@ -48,52 +85,60 @@ HIDDEN_DIM = 64
 
 @iron.jit
 def gru_cell_encoder(
-    x_in: In,
-    h_prev: In,
+    state: In,
     params: In,
     h_next: Out,
     *,
     input_dim: CompileTime[int] = INPUT_DIM,
     hidden_dim: CompileTime[int] = HIDDEN_DIM,
 ):
+    # state = [x_in (input_dim) | h_prev (hidden_dim)] concatenated into one
+    # input buffer. x_in and h_prev are bundled so the compute tile stays
+    # within its 2-input DMA-channel budget: state + params = 2 inputs,
+    # h_next = 1 output (each AIE core tile has only 2 in / 2 out channels).
     h3 = 3 * hidden_dim
     n_params = h3 * input_dim + h3 * hidden_dim + h3 + h3
+    # NPU shim DMA transfers must be 4-byte aligned. For bf16 (2 bytes/elem)
+    # that means an even element count. input_dim + hidden_dim = 45 + 64 =
+    # 109 is odd, so pad the state buffer up to the next even length. The
+    # kernel only reads the first input_dim + hidden_dim elements; the
+    # trailing pad element is ignored.
+    state_len_unpadded = input_dim + hidden_dim
+    state_len = state_len_unpadded + (state_len_unpadded % 2)
     dtype = np.dtype[bfloat16]
 
-    x_ty = np.ndarray[(input_dim,), dtype]
+    state_ty = np.ndarray[(state_len,), dtype]
     h_ty = np.ndarray[(hidden_dim,), dtype]
     params_ty = np.ndarray[(n_params,), dtype]
 
-    gru_kernel = ExternalFunction(
-        "gru_cell_encoder_bf16",
-        source_file=_KERNEL_SRC,
-        arg_types=[x_ty, h_ty, params_ty, h_ty],
+    gru_kernel = _make_gru_kernel(
+        arg_types=[state_ty, params_ty, h_ty],
         compile_flags=[f"-DINPUT_DIM={input_dim}", f"-DHIDDEN_DIM={hidden_dim}"],
     )
 
-    x_fifo = ObjectFifo(x_ty, name="x_in")
-    h_fifo = ObjectFifo(h_ty, name="h_prev")
-    params_fifo = ObjectFifo(params_ty, name="params")
-    hnext_fifo = ObjectFifo(h_ty, name="h_next")
+    # depth=1 (single buffer) everywhere: this is a single-shot kernel, not a
+    # streaming pipeline, so there's no ping-pong overlap to exploit. It also
+    # matters for capacity -- params alone is 42624 bytes; double-buffering it
+    # (the default depth=2) needs 85 KB and overflows the core's 64 KB L1.
+    state_fifo = ObjectFifo(state_ty, depth=1, name="state")
+    params_fifo = ObjectFifo(params_ty, depth=1, name="params")
+    hnext_fifo = ObjectFifo(h_ty, depth=1, name="h_next")
 
-    def core_fn(x_c, h_c, params_c, hnext_p, kernel):
-        elem_x = x_c.acquire(1)
-        elem_h = h_c.acquire(1)
+    def core_fn(state_c, params_c, hnext_p, kernel):
+        elem_state = state_c.acquire(1)
         elem_params = params_c.acquire(1)
         elem_out = hnext_p.acquire(1)
 
-        kernel(elem_x, elem_h, elem_params, elem_out)
+        kernel(elem_state, elem_params, elem_out)
 
-        x_c.release(1)
-        h_c.release(1)
+        state_c.release(1)
         params_c.release(1)
         hnext_p.release(1)
 
     worker = Worker(
         core_fn,
         [
-            x_fifo.cons(),
-            h_fifo.cons(),
+            state_fifo.cons(),
             params_fifo.cons(),
             hnext_fifo.prod(),
             gru_kernel,
@@ -101,15 +146,13 @@ def gru_cell_encoder(
     )
 
     rt = Runtime()
-    with rt.sequence(x_ty, h_ty, params_ty, h_ty) as (
-        x_arg,
-        h_arg,
+    with rt.sequence(state_ty, params_ty, h_ty) as (
+        state_arg,
         params_arg,
         hnext_arg,
     ):
         rt.start(worker)
-        rt.fill(x_fifo.prod(), x_arg)
-        rt.fill(h_fifo.prod(), h_arg)
+        rt.fill(state_fifo.prod(), state_arg)
         rt.fill(params_fifo.prod(), params_arg)
         rt.drain(hnext_fifo.cons(), hnext_arg, wait=True)
 
@@ -144,7 +187,14 @@ def _load_inputs_from_checkpoint():
 
     h_prev = np.zeros(HIDDEN_DIM, dtype=bfloat16)
 
-    return x_in, h_prev, params
+    # Concatenate into the single `state` buffer the kernel expects:
+    # [x_in (INPUT_DIM) | h_prev (HIDDEN_DIM)], padded to an even length to
+    # satisfy the 4-byte DMA alignment (see the design body's state_len note).
+    state = np.concatenate([x_in, h_prev]).astype(bfloat16)
+    if state.size % 2 != 0:
+        state = np.concatenate([state, np.zeros(1, dtype=bfloat16)])
+
+    return state, params
 
 
 def _make_argparser():
@@ -170,15 +220,14 @@ def _run_and_verify(opts):
     the NPU. In the WSL compile-only flow this function is never called;
     run_design_cli dispatches to compile-only whenever --xclbin-path is set.
     """
-    x_in, h_prev, params = _load_inputs_from_checkpoint()
+    state, params = _load_inputs_from_checkpoint()
 
-    x_t = iron.tensor(x_in, dtype=bfloat16, device="npu")
-    h_t = iron.tensor(h_prev, dtype=bfloat16, device="npu")
+    state_t = iron.tensor(state, dtype=bfloat16, device="npu")
     params_t = iron.tensor(params, dtype=bfloat16, device="npu")
     hnext_t = iron.zeros(HIDDEN_DIM, dtype=bfloat16, device="npu")
 
     gru_cell_encoder(
-        x_t, h_t, params_t, hnext_t,
+        state_t, params_t, hnext_t,
         input_dim=opts.input_dim, hidden_dim=opts.hidden_dim,
     )
 

@@ -39,7 +39,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "../../aie_kernel_utils.h"
+// These are resolved via -I include dirs passed by the IRON driver
+// (gru_cell_encoder.py), NOT via relative paths: the JIT copies this
+// source into build/<name>.prj/ before compiling, so a path like
+// "../../aie_kernel_utils.h" would not resolve. The driver adds the wheel's
+// aie_kernels dir (for aie_kernel_utils.h) and aie_runtime_lib/AIE2 dir
+// (for lut_based_ops.h) to the include path, and compiles lut_based_ops.cpp
+// into the same TU so getTanhBf16's tanh_lut tables are defined.
+#include "aie_kernel_utils.h"
 #include <aie_api/aie.hpp>
 #include <lut_based_ops.h>
 #include <stdint.h>
@@ -61,13 +68,22 @@ namespace {
 
 // sigmoid(x) = 0.5*(tanh(x/2) + 1), via the LUT-based tanh primitive.
 // Same identity used by aie_kernels/aie2/silu.cc's sigmoid_approx step.
+//
+// NOTE: aie::mul / aie::add of two bf16 vectors return an aie::accum, not a
+// vector. Each result is assigned to an explicit aie::vector<bfloat16,16>
+// (triggering the accum->vector conversion) BEFORE being used as an argument
+// to the next aie op -- nesting them (e.g. aie::add(v, aie::mul(...)))
+// fails to compile because no overload matches (vector, accum). This
+// materialize-every-step idiom mirrors aie_kernels/aie2/silu.cc.
 inline aie::vector<bfloat16, 16>
 sigmoid16(const aie::vector<bfloat16, 16> &x) {
   aie::vector<bfloat16, 16> half = aie::broadcast<bfloat16, 16>(0.5f);
   aie::vector<bfloat16, 16> one = aie::broadcast<bfloat16, 16>(1.0f);
   aie::vector<bfloat16, 16> half_x = aie::mul(x, half);
   aie::vector<bfloat16, 16> t = getTanhBf16(half_x);
-  return aie::mul(aie::add(t, one), half);
+  aie::vector<bfloat16, 16> t_plus_one = aie::add(t, one);
+  aie::vector<bfloat16, 16> result = aie::mul(t_plus_one, half);
+  return result;
 }
 
 // out[row] = sum_i(w[row*cols + i] * in[i]) + bias[row]
@@ -122,25 +138,31 @@ void gru_cell_encoder_impl(bfloat16 *restrict x_in, bfloat16 *restrict h_prev,
 
   AIE_LOOP_MIN_ITERATION_COUNT(H / 16)
   for (int i = 0; i < H; i += 16) {
+    // See sigmoid16's note: every aie::mul/add/sub result is materialized
+    // into an explicit vector before being fed to the next aie op.
     aie::vector<bfloat16, 16> vgi_r = aie::load_v<16>(gi_r + i);
     aie::vector<bfloat16, 16> vgh_r = aie::load_v<16>(gh_r + i);
-    aie::vector<bfloat16, 16> r = sigmoid16(aie::add(vgi_r, vgh_r));
+    aie::vector<bfloat16, 16> pre_r = aie::add(vgi_r, vgh_r);
+    aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
 
     aie::vector<bfloat16, 16> vgi_z = aie::load_v<16>(gi_z + i);
     aie::vector<bfloat16, 16> vgh_z = aie::load_v<16>(gh_z + i);
-    aie::vector<bfloat16, 16> z = sigmoid16(aie::add(vgi_z, vgh_z));
+    aie::vector<bfloat16, 16> pre_z = aie::add(vgi_z, vgh_z);
+    aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
 
     aie::vector<bfloat16, 16> vgi_n = aie::load_v<16>(gi_n + i);
     aie::vector<bfloat16, 16> vgh_n = aie::load_v<16>(gh_n + i);
     // r gates gh_n BEFORE combining with gi_n -- see file header note.
-    aie::vector<bfloat16, 16> n_pre = aie::add(vgi_n, aie::mul(r, vgh_n));
+    aie::vector<bfloat16, 16> r_gh_n = aie::mul(r, vgh_n);
+    aie::vector<bfloat16, 16> n_pre = aie::add(vgi_n, r_gh_n);
     aie::vector<bfloat16, 16> n = getTanhBf16(n_pre);
 
     aie::vector<bfloat16, 16> vh_prev = aie::load_v<16>(h_prev + i);
     aie::vector<bfloat16, 16> one = aie::broadcast<bfloat16, 16>(1.0f);
     aie::vector<bfloat16, 16> one_minus_z = aie::sub(one, z);
-    aie::vector<bfloat16, 16> h_out =
-        aie::add(aie::mul(one_minus_z, n), aie::mul(z, vh_prev));
+    aie::vector<bfloat16, 16> term1 = aie::mul(one_minus_z, n);
+    aie::vector<bfloat16, 16> term2 = aie::mul(z, vh_prev);
+    aie::vector<bfloat16, 16> h_out = aie::add(term1, term2);
 
     aie::store_v(h_next + i, h_out);
   }
@@ -150,8 +172,16 @@ void gru_cell_encoder_impl(bfloat16 *restrict x_in, bfloat16 *restrict h_prev,
 
 extern "C" {
 
-void gru_cell_encoder_bf16(bfloat16 *x_in, bfloat16 *h_prev,
-                           bfloat16 *params, bfloat16 *h_next) {
+// state buffer = [x_in (INPUT_DIM) | h_prev (HIDDEN_DIM)] concatenated.
+// x_in and h_prev are bundled into one input so the compute tile stays
+// within its 2-input DMA-channel budget: x_in + h_prev + params as three
+// separate input ObjectFifos would need 3 input channels, but each AIE
+// core tile has only 2 in / 2 out. state + params = 2 inputs, h_next = 1
+// output, which fits.
+void gru_cell_encoder_bf16(bfloat16 *state, bfloat16 *params,
+                           bfloat16 *h_next) {
+  bfloat16 *x_in = state;
+  bfloat16 *h_prev = state + INPUT_DIM;
   gru_cell_encoder_impl(x_in, h_prev, params, h_next);
 }
 
