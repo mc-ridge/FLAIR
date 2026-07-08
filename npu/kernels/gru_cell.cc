@@ -66,23 +66,46 @@ static_assert(HIDDEN_DIM % 16 == 0,
 
 namespace {
 
-// sigmoid(x) = 0.5*(tanh(x/2) + 1), via the LUT-based tanh primitive.
-// Same identity used by aie_kernels/aie2/silu.cc's sigmoid_approx step.
+// Nonlinearities are built from the EXP LUT (getExpBf16), NOT the tanh LUT
+// (getTanhBf16). getTanhBf16 produced a deterministic NaN for one unit's
+// interior input value; getExpBf16 uses a `truncate` out-of-range policy
+// (it saturates rather than reading out of bounds) so it can't NaN, and it's
+// the same primitive the vector_exp / softmax examples rely on.
 //
-// NOTE: aie::mul / aie::add of two bf16 vectors return an aie::accum, not a
-// vector. Each result is assigned to an explicit aie::vector<bfloat16,16>
-// (triggering the accum->vector conversion) BEFORE being used as an argument
-// to the next aie op -- nesting them (e.g. aie::add(v, aie::mul(...)))
-// fails to compile because no overload matches (vector, accum). This
-// materialize-every-step idiom mirrors aie_kernels/aie2/silu.cc.
+// NOTE on typing: aie::mul / aie::add / aie::sub of two bf16 vectors return
+// an aie::accum, not a vector. Each result is assigned to an explicit
+// aie::vector<bfloat16,16> (triggering the accum->vector conversion) BEFORE
+// being fed to the next aie op -- nesting them fails to compile (no overload
+// for (vector, accum)). This mirrors aie_kernels/aie2/silu.cc.
+
+// sigmoid(x) = 1 / (1 + exp(-x)).
+// exp via getExpBf16 (vector, robust); reciprocal per-lane via getInvBf16
+// (scalar bit-manipulation reciprocal from lut_based_ops.h -- no LUT range).
 inline aie::vector<bfloat16, 16>
 sigmoid16(const aie::vector<bfloat16, 16> &x) {
-  aie::vector<bfloat16, 16> half = aie::broadcast<bfloat16, 16>(0.5f);
+  aie::vector<bfloat16, 16> zero = aie::broadcast<bfloat16, 16>(0.0f);
   aie::vector<bfloat16, 16> one = aie::broadcast<bfloat16, 16>(1.0f);
-  aie::vector<bfloat16, 16> half_x = aie::mul(x, half);
-  aie::vector<bfloat16, 16> t = getTanhBf16(half_x);
-  aie::vector<bfloat16, 16> t_plus_one = aie::add(t, one);
-  aie::vector<bfloat16, 16> result = aie::mul(t_plus_one, half);
+  aie::vector<bfloat16, 16> neg_x = aie::sub(zero, x);           // -x
+  aie::vector<bfloat16, 16> e = to_v16bfloat16(getExpBf16(neg_x)); // exp(-x)
+  aie::vector<bfloat16, 16> denom = aie::add(one, e);           // 1 + exp(-x)
+
+  alignas(aie::vector_decl_align) bfloat16 denom_arr[16];
+  alignas(aie::vector_decl_align) bfloat16 out_arr[16];
+  aie::store_v(denom_arr, denom);
+  for (int j = 0; j < 16; j++)
+    out_arr[j] = getInvBf16((float)denom_arr[j]);               // 1 / denom
+  return aie::load_v<16>(out_arr);
+}
+
+// tanh(x) = 2*sigmoid(2x) - 1.
+inline aie::vector<bfloat16, 16>
+tanh16(const aie::vector<bfloat16, 16> &x) {
+  aie::vector<bfloat16, 16> two = aie::broadcast<bfloat16, 16>(2.0f);
+  aie::vector<bfloat16, 16> one = aie::broadcast<bfloat16, 16>(1.0f);
+  aie::vector<bfloat16, 16> two_x = aie::mul(x, two);
+  aie::vector<bfloat16, 16> s = sigmoid16(two_x);   // sigmoid(2x)
+  aie::vector<bfloat16, 16> two_s = aie::mul(two, s);
+  aie::vector<bfloat16, 16> result = aie::sub(two_s, one);
   return result;
 }
 
@@ -129,6 +152,17 @@ void gru_cell_encoder_impl(bfloat16 *restrict x_in, bfloat16 *restrict h_prev,
   matvec_bias(w_ih, x_in, b_ih, gi, H3, INPUT_DIM);
   matvec_bias(w_hh, h_prev, b_hh, gh, H3, H);
 
+  // h_prev points INTO the DMA'd state buffer at element offset INPUT_DIM
+  // (=45), i.e. 90 bytes -- NOT a 32-byte vector boundary. A direct
+  // aie::load_v<16>(h_prev + i) in the combine loop below reads misaligned /
+  // wrong memory (garbage, incl. NaN bit patterns), corrupting the z*h_prev
+  // term. Copy h_prev (scalar reads are alignment-agnostic) into an aligned
+  // local buffer so the vector loads are correct. gi/gh are already aligned
+  // (declared alignas above), so only h_prev needs this.
+  alignas(aie::vector_decl_align) bfloat16 h_local[H];
+  for (int i = 0; i < H; i++)
+    h_local[i] = h_prev[i];
+
   bfloat16 *gi_r = gi;
   bfloat16 *gi_z = gi + H;
   bfloat16 *gi_n = gi + 2 * H;
@@ -155,9 +189,9 @@ void gru_cell_encoder_impl(bfloat16 *restrict x_in, bfloat16 *restrict h_prev,
     // r gates gh_n BEFORE combining with gi_n -- see file header note.
     aie::vector<bfloat16, 16> r_gh_n = aie::mul(r, vgh_n);
     aie::vector<bfloat16, 16> n_pre = aie::add(vgi_n, r_gh_n);
-    aie::vector<bfloat16, 16> n = getTanhBf16(n_pre);
+    aie::vector<bfloat16, 16> n = tanh16(n_pre);
 
-    aie::vector<bfloat16, 16> vh_prev = aie::load_v<16>(h_prev + i);
+    aie::vector<bfloat16, 16> vh_prev = aie::load_v<16>(h_local + i);
     aie::vector<bfloat16, 16> one = aie::broadcast<bfloat16, 16>(1.0f);
     aie::vector<bfloat16, 16> one_minus_z = aie::sub(one, z);
     aie::vector<bfloat16, 16> term1 = aie::mul(one_minus_z, n);
