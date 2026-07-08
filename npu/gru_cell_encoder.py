@@ -116,9 +116,13 @@ def gru_cell_encoder(
         compile_flags=[f"-DINPUT_DIM={input_dim}", f"-DHIDDEN_DIM={hidden_dim}"],
     )
 
-    state_fifo = ObjectFifo(state_ty, name="state")
-    params_fifo = ObjectFifo(params_ty, name="params")
-    hnext_fifo = ObjectFifo(h_ty, name="h_next")
+    # depth=1 (single buffer) everywhere: this is a single-shot kernel, not a
+    # streaming pipeline, so there's no ping-pong overlap to exploit. It also
+    # matters for capacity -- params alone is 42624 bytes; double-buffering it
+    # (the default depth=2) needs 85 KB and overflows the core's 64 KB L1.
+    state_fifo = ObjectFifo(state_ty, depth=1, name="state")
+    params_fifo = ObjectFifo(params_ty, depth=1, name="params")
+    hnext_fifo = ObjectFifo(h_ty, depth=1, name="h_next")
 
     def core_fn(state_c, params_c, hnext_p, kernel):
         elem_state = state_c.acquire(1)
