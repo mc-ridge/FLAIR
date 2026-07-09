@@ -208,3 +208,9 @@ __marimo__/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# NPU/IRON host build artifacts (npu/)
+npu/_build/
+npu/*.exe
+npu/*.bin
+npu/**/*.o
