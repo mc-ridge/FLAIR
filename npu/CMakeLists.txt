@@ -1,7 +1,7 @@
 # CMake host-build config for the FLAIR GRU-cell NPU test harness.
 # Modeled on mlir-aie's programming_examples/basic/vector_scalar_mul/CMakeLists.txt.
 #
-# Parameters (passed via -D by the Makefile or on the cmake command line):
+## Parameters (passed via -D by the Makefile or on the cmake command line):
 #   -DXRT_INC_DIR : XRT headers (src/runtime_src/core/include in the XRT repo)
 #   -DXRT_LIB_DIR : dir containing xrt_coreutil.lib
 #   -DTARGET_NAME : output executable base name
@@ -18,13 +18,23 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 # out = latent (HIDDEN_DIM).
 set(INPUT_DIM 45 CACHE STRING "GRU input dim")
 set(HIDDEN_DIM 64 CACHE STRING "GRU hidden dim")
-set(SEQ_LEN 10 CACHE STRING "encoder window length")
-set(N_PARAMS 21312 CACHE STRING "total packed encoder params")
+set(SEQ_LEN 10 CACHE STRING "sequence length")
+set(N_PARAMS 21312 CACHE STRING "packed params")
+set(NPU_MODE encoder CACHE STRING "encoder or decoder")
+set(HOST_SRC test.cpp CACHE STRING "host source file")
 
 # Buffer sizes in bytes (bf16 = 2 bytes/elem).
-math(EXPR IN1_SIZE "${SEQ_LEN} * ${INPUT_DIM} * 2")
-math(EXPR IN2_SIZE "${N_PARAMS} * 2")
-math(EXPR OUT_SIZE "${HIDDEN_DIM} * 2")
+if("${NPU_MODE}" STREQUAL "encoder")
+    math(EXPR IN1_SIZE "${SEQ_LEN} * ${INPUT_DIM} * 2")
+    math(EXPR IN2_SIZE "${N_PARAMS} * 2")
+    math(EXPR OUT_SIZE "${HIDDEN_DIM} * 2")
+elseif("${NPU_MODE}" STREQUAL "decoder")
+    math(EXPR IN1_SIZE "${HIDDEN_DIM} * 2")
+    math(EXPR IN2_SIZE "${N_PARAMS} * 2")
+    math(EXPR OUT_SIZE "${SEQ_LEN} * ${HIDDEN_DIM} * 2")
+else()
+    message(FATAL_ERROR "NPU_MODE must be encoder or decoder")
+endif()
 
 # This design lives at programming_examples/FLAIR_Dan/npu -- two levels under
 # programming_examples/, same depth as the basic/ examples, so the shared
@@ -34,7 +44,7 @@ mlir_aie_init_example()
 project(${ProjectName})
 include(../../common.cmake)
 
-add_executable(${currentTarget} test.cpp)
+add_executable(${currentTarget} ${HOST_SRC})
 
 target_compile_definitions(${currentTarget} PUBLIC
     INPUT_DIM=${INPUT_DIM}
