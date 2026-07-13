@@ -48,18 +48,17 @@ sigmoid16(const aie::vector<bfloat16, 16> &x) {
   alignas(aie::vector_decl_align) bfloat16 out_arr[16];
   aie::store_v(denom_arr, denom);
   for (int j = 0; j < 16; j++) {
-    //out_arr[j] = getInvBf16((float)denom_arr[j]);                  // 1 / denom
-    float d = (float)denom_arr[j];
-
-    bfloat16 y_bf = getInvBf16(d);
-    float y = (float)y_bf;
-
-    //NEWTON-RAPHSON REFINEEEED
-    //y = y * (2.0f - d * y);\
-    float correction = 2.0f - d * y;
-    float y_refined = y * correction;
-  
-    out_arr[j] = (bfloat16)y_refined;
+    float y = (float)getInvBf16((float)denom_arr[j]);
+    
+    // Safety clamp: sigmoid must be in [0, 1].
+    if (y != y)
+      y = 0.5f;   // NaN guard
+    if (y < 0.0f)
+      y = 0.0f;
+    if (y > 1.0f)
+      y = 1.0f;
+    
+    out_arr[j] = (bfloat16)y;
   }
   return aie::load_v<16>(out_arr);
 }
