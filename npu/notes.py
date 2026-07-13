@@ -1,3 +1,49 @@
+
+
+inline aie::vector<bfloat16, 16>
+sigmoid16(const aie::vector<bfloat16, 16> &x) {
+  aie::vector<bfloat16, 16> zero = aie::broadcast<bfloat16, 16>(0.0f);
+  aie::vector<bfloat16, 16> one = aie::broadcast<bfloat16, 16>(1.0f);
+
+  aie::vector<bfloat16, 16> neg_x = aie::sub(zero, x);
+  aie::vector<bfloat16, 16> e = to_v16bfloat16(getExpBf16(neg_x));
+  aie::vector<bfloat16, 16> denom = aie::add(one, e);
+
+  alignas(aie::vector_decl_align) bfloat16 denom_arr[16];
+  alignas(aie::vector_decl_align) bfloat16 out_arr[16];
+
+  aie::store_v(denom_arr, denom);
+
+  for (int j = 0; j < 16; j++) {
+    float d = (float)denom_arr[j];
+
+    bfloat16 y_bf = getInvBf16(d);
+    float y = (float)y_bf;
+
+    float correction = 2.0f - d * y;
+    float y_refined = y * correction;
+
+    out_arr[j] = (bfloat16)y_refined;
+  }
+
+  return aie::load_v<16>(out_arr);
+}
+
+# nl -ba kernels/gru_common.h | sed -n '35,80p'
+# make -f Makefile.decoder clean
+# make -f Makefile.decoder SEQ_LEN=10 WINDOW_INDEX=0
+
+
+
+
+
+
+
+
+
+
+
+
 # DECODERRRRR+data
 
 
