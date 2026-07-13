@@ -17,72 +17,13 @@ $ make -f Makefile.encoder SEQ_LEN=10
 --------------------------------------------------------------------------------
 mkdir -p build
 python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_encoder.py --dev npu --input-dim 48 --hidden-dim 64 --seq-len 10 --xclbin-path=build/gru.xclbin --insts-path=build/insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_encoder.py", line 161, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_encoder.py", line 151, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/gru.prj/gru_encoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_encoder.cc:43:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/gru.prj/gru_encoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_encoder.cc:68:5: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   68 |     flair::gru_step(x_t, h, w_ih, w_hh, b_ih, b_hh, INPUT_DIM);
-      |     ^~~~~~~~~~~~~~~
-      |     gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
-
-make: *** [Makefile.encoder:52: build/gru.xclbin] Error 1
+python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gen_encoder_data.py --seq-len 10
+x_window: (480,) bf16 -> gru_state.bin (960 B)
+params:   (21888,) bf16 -> gru_params.bin (43776 B)
+latent:   (64,) f32  -> gru_golden.bin (256 B)
+golden:   NPU-like bf16-rounded reference with 48-dim padded input
+latent[:8] = [-0.765625    0.71875     0.4453125  -0.28710938  0.53125    -0.5703125
+ -0.01269531 -0.39453125]
 
 
 $ make -f Makefile.encoder run SEQ_LEN=10
@@ -104,7 +45,7 @@ cd _build && powershell.exe cmake `wslpath -w /mnt/c/Technical/mlir-aie/programm
 -- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
--- Configuring done (2.5s)
+-- Configuring done (3.0s)
 -- Generating done (0.0s)
 -- Build files have been written to: C:/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/_build
 cd _build && powershell.exe cmake --build . --config Release
@@ -125,146 +66,111 @@ MSBuild version 18.7.8+1ac568fee for .NET Framework
   gru_encoder.vcxproj -> C:\Technical\mlir-aie\programming_examples\FLAIR_MC2\npu\_build\gru_encoder.exe
   Building Custom Rule C:/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/CMakeLists.txt
 cp _build/gru_encoder.exe gru_encoder.exe
-mkdir -p build
-python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_encoder.py --dev npu --input-dim 48 --hidden-dim 64 --seq-len 10 --xclbin-path=build/gru.xclbin --insts-path=build/insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_encoder.py", line 161, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_encoder.py", line 151, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/gru.prj/gru_encoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_encoder.cc:43:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/gru.prj/gru_encoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_encoder.cc:68:5: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   68 |     flair::gru_step(x_t, h, w_ih, w_hh, b_ih, b_hh, INPUT_DIM);
-      |     ^~~~~~~~~~~~~~~
-      |     gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
+powershell.exe ./gru_encoder.exe -x build/gru.xclbin -i build/insts.bin -k MLIR_AIE -v 1
+Sequence instr count: 105
+Loading xclbin: build/gru.xclbin
+Kernel opcode: MLIR_AIE
+Name: MLIR_AIE
+Registering xclbin: build/gru.xclbin
+Getting hardware context.
+Getting handle to kernel:MLIR_AIE
+Writing data into buffer objects.
+Running Kernel.
+Running Kernel.
+Verifying results ...
+  mismatch[0]: got inf (0x7f80) ref -0.765625 (|d|=inf)
+  mismatch[1]: got -inf (0xff80) ref 0.71875 (|d|=inf)
+  mismatch[2]: got -inf (0xff80) ref 0.445312 (|d|=inf)
+  mismatch[3]: got -inf (0xff80) ref -0.287109 (|d|=inf)
+  mismatch[4]: got -1.37721e+28 (0xee32) ref 0.53125 (|d|=1.37721e+28)
+  mismatch[5]: got -inf (0xff80) ref -0.570312 (|d|=inf)
+  mismatch[6]: got -3.9931e+31 (0xf3fc) ref -0.0126953 (|d|=3.9931e+31)
+  mismatch[7]: got -inf (0xff80) ref -0.394531 (|d|=inf)
+  mismatch[8]: got -0.00250244 (0xbb24) ref -0.640625 (|d|=0.638123)
+  mismatch[9]: got 0.0078125 (0x3c00) ref 0.84375 (|d|=0.835938)
+  mismatch[10]: got -0.0078125 (0xbc00) ref -0.777344 (|d|=0.769531)
+  mismatch[11]: got 0.0078125 (0x3c00) ref 0.386719 (|d|=0.378906)
+  mismatch[12]: got -0.00123596 (0xbaa2) ref -0.147461 (|d|=0.146225)
+  mismatch[13]: got -0.0078125 (0xbc00) ref -0.375 (|d|=0.367188)
+  mismatch[15]: got -0.0078125 (0xbc00) ref -0.201172 (|d|=0.193359)
+  mismatch[16]: got -9.93027e+34 (0xf999) ref 0.474609 (|d|=9.93027e+34)
+  mismatch[17]: got -9.444e+31 (0xf495) ref 0.304688 (|d|=9.444e+31)
+  mismatch[18]: got -5.75 (0xc0b8) ref -0.408203 (|d|=5.3418)
+  mismatch[19]: got 1.09375 (0x3f8c) ref 0.355469 (|d|=0.738281)
+  mismatch[20]: got -0.259766 (0xbe85) ref -0.84375 (|d|=0.583984)
+  mismatch[21]: got -794624 (0xc942) ref 0.457031 (|d|=794624)
+  mismatch[22]: got -inf (0xff80) ref 0.496094 (|d|=inf)
+  mismatch[23]: got nan (0x7f81) ref 0.498047 (|d|=nan)
+  mismatch[25]: got 0.00335693 (0x3b5c) ref 0.0634766 (|d|=0.0601196)
+  mismatch[26]: got -0.00114441 (0xba96) ref 0.519531 (|d|=0.520676)
+  mismatch[27]: got -0.00778198 (0xbbff) ref -0.417969 (|d|=0.410187)
+  mismatch[28]: got 0.00037384 (0x39c4) ref -0.65625 (|d|=0.656624)
+  mismatch[29]: got 0.000976562 (0x3a80) ref -0.820312 (|d|=0.821289)
+  mismatch[30]: got -0.000999451 (0xba83) ref -0.240234 (|d|=0.239235)
+  mismatch[31]: got -0.00228882 (0xbb16) ref -0.378906 (|d|=0.376617)
+  mismatch[32]: got -5.1875 (0xc0a6) ref 0.78125 (|d|=5.96875)
+  mismatch[33]: got inf (0x7f80) ref 0.0195312 (|d|=inf)
+  mismatch[34]: got -1.20288e+26 (0xeac7) ref 0.316406 (|d|=1.20288e+26)
+  mismatch[35]: got -inf (0xff80) ref -0.245117 (|d|=inf)
+  mismatch[36]: got -inf (0xff80) ref -0.824219 (|d|=inf)
+  mismatch[37]: got 1.40625 (0x3fb4) ref -0.613281 (|d|=2.01953)
+  mismatch[38]: got -1.59033e+16 (0xda62) ref 0.0634766 (|d|=1.59033e+16)
+  mismatch[39]: got -0.108887 (0xbddf) ref 0.213867 (|d|=0.322754)
+  mismatch[40]: got 0.000227928 (0x396f) ref 0.75 (|d|=0.749772)
+  mismatch[41]: got -0.000743866 (0xba43) ref -0.761719 (|d|=0.760975)
+  mismatch[42]: got 0.0078125 (0x3c00) ref 0.472656 (|d|=0.464844)
+  mismatch[43]: got 0.00213623 (0x3b0c) ref 0.765625 (|d|=0.763489)
+  mismatch[44]: got 0.0078125 (0x3c00) ref -0.964844 (|d|=0.972656)
+  mismatch[45]: got 0.00297546 (0x3b43) ref -0.439453 (|d|=0.442429)
+  mismatch[47]: got -0.00131989 (0xbaad) ref -0.648438 (|d|=0.647118)
+  mismatch[48]: got -inf (0xff80) ref -0.333984 (|d|=inf)
+  mismatch[49]: got nan (0x7f81) ref 0.40625 (|d|=nan)
+  mismatch[50]: got 11.625 (0x413a) ref -0.151367 (|d|=11.7764)
+  mismatch[51]: got -8.79609e+13 (0xd6a0) ref 0.761719 (|d|=8.79609e+13)
+  mismatch[52]: got -inf (0xff80) ref -0.632812 (|d|=inf)
+  mismatch[53]: got inf (0x7f80) ref -0.640625 (|d|=inf)
+  mismatch[54]: got -2.05359e+32 (0xf522) ref -0.773438 (|d|=2.05359e+32)
+  mismatch[55]: got -8.79609e+13 (0xd6a0) ref -0.5625 (|d|=8.79609e+13)
+  mismatch[56]: got 0.00262451 (0x3b2c) ref 0.421875 (|d|=0.41925)
+  mismatch[57]: got 0.0078125 (0x3c00) ref 0.124023 (|d|=0.116211)
+  mismatch[58]: got 0.00289917 (0x3b3e) ref -0.609375 (|d|=0.612274)
+  mismatch[59]: got 0.00184631 (0x3af2) ref -0.5 (|d|=0.501846)
+  mismatch[60]: got -0.00262451 (0xbb2c) ref 0.328125 (|d|=0.33075)
+  mismatch[61]: got 0.00382996 (0x3b7b) ref -0.171875 (|d|=0.175705)
+  mismatch[62]: got 0.00292969 (0x3b40) ref -0.257812 (|d|=0.260742)
+  mismatch[63]: got -0.0078125 (0xbc00) ref 0.640625 (|d|=0.648438)
+h_next max abs error vs golden (finite): 9.93027e+34  (atol=0.05, 61/64 over tol)
+Verify time: 0secs.
 
-make: *** [Makefile.encoder:52: build/gru.xclbin] Error 1
+Avg NPU time: 1303us.
+
+Min NPU time: 1303us.
+
+Max NPU time: 1303us.
+
+Error count: 61
+
+
+Failed.
+
+make: *** [Makefile.encoder:68: run] Error 1
 
 
 $ make -f Makefile.decoder SEQ_LEN=10 WINDOW_INDEX=0
 --------------------------------------------------------------------------------
 mkdir -p build
 python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --xclbin-path=build/decoder.xclbin --insts-path=build/decoder_insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 184, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 174, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   67 |         flair::gru_step(
-      |         ^~~~~~~~~~~~~~~
-      |         gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
-
-make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
+python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gen_decoder_data.py --seq-len 10 --window-index 0
+latent:        (64,) bf16 -> decoder_latent.bin (128 B)
+h0:            (64,) bf16 -> decoder_h0.bin (128 B)
+gru params:    (24960,) bf16 -> decoder_gru_params.bin (49920 B)
+full params:   (30486,) bf16 -> decoder_params.bin (60972 B)
+x_num:         (10, 21) bf16 -> decoder_x_num.bin (420 B)
+hidden_seq:    (10, 64) f32 -> decoder_hidden_golden.bin (2560 B)
+recon:         (10, 21) f32 -> decoder_golden_recon.bin (840 B)
+MSE score:     0.38764089 -> decoder_golden_score.bin
+golden:        NPU-like bf16-rounded reference
+recon[0, :5] = [-0.2873975  -0.4353341  -0.3308549  -0.36398244 -0.20942378]
 
 
 $ make -f Makefile.decoder run SEQ_LEN=10 WINDOW_INDEX=0
@@ -286,7 +192,7 @@ cd _build && powershell.exe cmake `wslpath -w /mnt/c/Technical/mlir-aie/programm
 -- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
--- Configuring done (2.6s)
+-- Configuring done (2.8s)
 -- Generating done (0.0s)
 -- Build files have been written to: C:/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/_build
 cd _build && powershell.exe cmake --build . --config Release
@@ -307,683 +213,461 @@ MSBuild version 18.7.8+1ac568fee for .NET Framework
   gru_decoder.vcxproj -> C:\Technical\mlir-aie\programming_examples\FLAIR_MC2\npu\_build\gru_decoder.exe
   Building Custom Rule C:/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/CMakeLists.txt
 cp _build/gru_decoder.exe gru_decoder.exe
-mkdir -p build
-python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --xclbin-path=build/decoder.xclbin --insts-path=build/decoder_insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 184, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 174, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   67 |         flair::gru_step(
-      |         ^~~~~~~~~~~~~~~
-      |         gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
+python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gen_decoder_data.py --seq-len 10 --window-index 0
+latent:        (64,) bf16 -> decoder_latent.bin (128 B)
+h0:            (64,) bf16 -> decoder_h0.bin (128 B)
+gru params:    (24960,) bf16 -> decoder_gru_params.bin (49920 B)
+full params:   (30486,) bf16 -> decoder_params.bin (60972 B)
+x_num:         (10, 21) bf16 -> decoder_x_num.bin (420 B)
+hidden_seq:    (10, 64) f32 -> decoder_hidden_golden.bin (2560 B)
+recon:         (10, 21) f32 -> decoder_golden_recon.bin (840 B)
+MSE score:     0.38764089 -> decoder_golden_score.bin
+golden:        NPU-like bf16-rounded reference
+recon[0, :5] = [-0.2873975  -0.4353341  -0.3308549  -0.36398244 -0.20942378]
+powershell.exe ./gru_decoder.exe -x build/decoder.xclbin -i build/decoder_insts.bin -k MLIR_AIE -v 1
+Sequence instr count: 105
+Loading xclbin: build/decoder.xclbin
+Kernel opcode: MLIR_AIE
+Name: MLIR_AIE
+Registering xclbin: build/decoder.xclbin
+Getting hardware context.
+Getting handle to kernel:MLIR_AIE
+Writing data into buffer objects.
+Running Kernel.
+Running Kernel.
+Verifying results ...
+  mismatch[t=0, h=0]: got 7.59375 ref 0.53125 |d|=7.0625
+  mismatch[t=0, h=1]: got -323584 ref -0.402344 |d|=323584
+  mismatch[t=0, h=2]: got 38.5 ref -0.277344 |d|=38.7773
+  mismatch[t=0, h=3]: got 737280 ref 0.277344 |d|=737280
+  mismatch[t=0, h=4]: got -1.125 ref 0.273438 |d|=1.39844
+  mismatch[t=0, h=5]: got -64 ref 0.574219 |d|=64.5742
+  mismatch[t=0, h=6]: got -166 ref -0.25 |d|=165.75
+  mismatch[t=0, h=7]: got -307200 ref 0.550781 |d|=307201
+  mismatch[t=0, h=16]: got -81 ref 0.542969 |d|=81.543
+  mismatch[t=0, h=17]: got 3.75 ref -0.304688 |d|=4.05469
+  mismatch[t=0, h=18]: got -0.492188 ref -0.683594 |d|=0.191406
+  mismatch[t=0, h=19]: got 41.5 ref -0.408203 |d|=41.9082
+  mismatch[t=0, h=20]: got -4.61709e+10 ref -0.380859 |d|=4.61709e+10
+  mismatch[t=0, h=21]: got 5.5 ref 0.257812 |d|=5.24219
+  mismatch[t=0, h=22]: got -5.84375 ref -0.765625 |d|=5.07812
+  mismatch[t=0, h=23]: got -840 ref 0.043457 |d|=840.043
+  mismatch[t=0, h=32]: got -25.5 ref 0.242188 |d|=25.7422
+  mismatch[t=0, h=33]: got -1120 ref 0.933594 |d|=1120.93
+  mismatch[t=0, h=34]: got -112 ref 0.269531 |d|=112.27
+  mismatch[t=0, h=35]: got -664 ref -0.847656 |d|=663.152
+decoder hidden_seq max abs error vs golden: 4.28887e+20  mean abs error: 6.3771e+18  atol=0.1  errors=594/640
+FAIL: decoder hidden_seq has mismatches.
+Verify time: 0secs.
 
-make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
+Avg NPU time: 1343us.
+
+Min NPU time: 1343us.
+
+Max NPU time: 1343us.
+
+Error count: 594
+
+
+Failed.
+
+make: *** [Makefile.decoder:40: run] Error 1
 
 
 $ make -f Makefile.decoder score SEQ_LEN=10 WINDOW_INDEX=0
 --------------------------------------------------------------------------------
 python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/compare_anomaly_score.py --seq-len 10 --window-index 0
-decoder_npu_hidden.bin not found -- run the decoder stage first (make -f Makefile.decoder run).
-make: *** [Makefile.decoder:46: score] Error 1
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/compare_anomaly_score.py:97: RuntimeWarning: overflow encountered in square
+  return float(np.mean((recon - x_num_window) ** 2))
+====================================================================
+FLAIR anomaly score - NPU vs reference  (window 0, T=10)
+====================================================================
+  NPU-derived score (from NPU hidden_seq): inf
+  Float reference  (PyTorch-precision)   : 0.387230
+  bf16 golden score (gen_decoder_data)   : 0.387641
+--------------------------------------------------------------------
+  |NPU - float ref|      : inf
+  relative error         : inf%
+====================================================================
+NPU anomaly score differs >15% from PyTorch.
 
 
 $ make -f Makefile.decoder SEQ_LEN=10 WINDOW_INDEX=1
 --------------------------------------------------------------------------------
-mkdir -p build
-python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --xclbin-path=build/decoder.xclbin --insts-path=build/decoder_insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 184, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 174, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   67 |         flair::gru_step(
-      |         ^~~~~~~~~~~~~~~
-      |         gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
-
-make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
+python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gen_decoder_data.py --seq-len 10 --window-index 1
+latent:        (64,) bf16 -> decoder_latent.bin (128 B)
+h0:            (64,) bf16 -> decoder_h0.bin (128 B)
+gru params:    (24960,) bf16 -> decoder_gru_params.bin (49920 B)
+full params:   (30486,) bf16 -> decoder_params.bin (60972 B)
+x_num:         (10, 21) bf16 -> decoder_x_num.bin (420 B)
+hidden_seq:    (10, 64) f32 -> decoder_hidden_golden.bin (2560 B)
+recon:         (10, 21) f32 -> decoder_golden_recon.bin (840 B)
+MSE score:     0.39128166 -> decoder_golden_score.bin
+golden:        NPU-like bf16-rounded reference
+recon[0, :5] = [-0.25804734 -0.34198642 -0.24202728 -0.27522844 -0.11735547]
 
 
 $ make -f Makefile.decoder run SEQ_LEN=10 WINDOW_INDEX=1
 --------------------------------------------------------------------------------
-mkdir -p build
-python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --xclbin-path=build/decoder.xclbin --insts-path=build/decoder_insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 184, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 174, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   67 |         flair::gru_step(
-      |         ^~~~~~~~~~~~~~~
-      |         gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
+python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gen_decoder_data.py --seq-len 10 --window-index 1
+latent:        (64,) bf16 -> decoder_latent.bin (128 B)
+h0:            (64,) bf16 -> decoder_h0.bin (128 B)
+gru params:    (24960,) bf16 -> decoder_gru_params.bin (49920 B)
+full params:   (30486,) bf16 -> decoder_params.bin (60972 B)
+x_num:         (10, 21) bf16 -> decoder_x_num.bin (420 B)
+hidden_seq:    (10, 64) f32 -> decoder_hidden_golden.bin (2560 B)
+recon:         (10, 21) f32 -> decoder_golden_recon.bin (840 B)
+MSE score:     0.39128166 -> decoder_golden_score.bin
+golden:        NPU-like bf16-rounded reference
+recon[0, :5] = [-0.25804734 -0.34198642 -0.24202728 -0.27522844 -0.11735547]
+powershell.exe ./gru_decoder.exe -x build/decoder.xclbin -i build/decoder_insts.bin -k MLIR_AIE -v 1
+Sequence instr count: 105
+Loading xclbin: build/decoder.xclbin
+Kernel opcode: MLIR_AIE
+Name: MLIR_AIE
+Registering xclbin: build/decoder.xclbin
+Getting hardware context.
+Getting handle to kernel:MLIR_AIE
+Writing data into buffer objects.
+Running Kernel.
+Running Kernel.
+Verifying results ...
+  mismatch[t=0, h=0]: got 3.64062 ref 0.324219 |d|=3.31641
+  mismatch[t=0, h=1]: got -888832 ref -0.466797 |d|=888832
+  mismatch[t=0, h=2]: got 19.875 ref -0.431641 |d|=20.3066
+  mismatch[t=0, h=3]: got -4352 ref 0.308594 |d|=4352.31
+  mismatch[t=0, h=4]: got 1.03125 ref 0.233398 |d|=0.797852
+  mismatch[t=0, h=5]: got -101 ref 0.578125 |d|=101.578
+  mismatch[t=0, h=6]: got -143 ref -0.0908203 |d|=142.909
+  mismatch[t=0, h=7]: got -872448 ref 0.482422 |d|=872448
+  mismatch[t=0, h=16]: got -25.375 ref 0.386719 |d|=25.7617
+  mismatch[t=0, h=17]: got 2.51562 ref -0.353516 |d|=2.86914
+  mismatch[t=0, h=18]: got -0.402344 ref -0.765625 |d|=0.363281
+  mismatch[t=0, h=19]: got 26.125 ref -0.375 |d|=26.5
+  mismatch[t=0, h=20]: got -3.17194e+07 ref -0.273438 |d|=3.17194e+07
+  mismatch[t=0, h=21]: got 4 ref 0.265625 |d|=3.73438
+  mismatch[t=0, h=22]: got -6.0625 ref -0.765625 |d|=5.29688
+  mismatch[t=0, h=23]: got -294 ref 0.0878906 |d|=294.088
+  mismatch[t=0, h=32]: got -24.625 ref 0.0698242 |d|=24.6948
+  mismatch[t=0, h=33]: got -394 ref 0.921875 |d|=394.922
+  mismatch[t=0, h=34]: got -18.5 ref 0.115234 |d|=18.6152
+  mismatch[t=0, h=35]: got -422 ref -0.769531 |d|=421.23
+decoder hidden_seq max abs error vs golden: 2.08079e+22  mean abs error: 3.05755e+20  atol=0.1  errors=589/640
+FAIL: decoder hidden_seq has mismatches.
+Verify time: 0secs.
 
-make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
+Avg NPU time: 1292us.
+
+Min NPU time: 1292us.
+
+Max NPU time: 1292us.
+
+Error count: 589
+
+
+Failed.
+
+make: *** [Makefile.decoder:40: run] Error 1
 
 
 $ make -f Makefile.decoder score SEQ_LEN=10 WINDOW_INDEX=1
 --------------------------------------------------------------------------------
 python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/compare_anomaly_score.py --seq-len 10 --window-index 1
-decoder_npu_hidden.bin not found -- run the decoder stage first (make -f Makefile.decoder run).
-make: *** [Makefile.decoder:46: score] Error 1
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/compare_anomaly_score.py:97: RuntimeWarning: overflow encountered in square
+  return float(np.mean((recon - x_num_window) ** 2))
+====================================================================
+FLAIR anomaly score - NPU vs reference  (window 1, T=10)
+====================================================================
+  NPU-derived score (from NPU hidden_seq): inf
+  Float reference  (PyTorch-precision)   : 0.389722
+  bf16 golden score (gen_decoder_data)   : 0.391282
+--------------------------------------------------------------------
+  |NPU - float ref|      : inf
+  relative error         : inf%
+====================================================================
+NPU anomaly score differs >15% from PyTorch.
 
 
 $ make -f Makefile.decoder SEQ_LEN=10 WINDOW_INDEX=2
 --------------------------------------------------------------------------------
-mkdir -p build
-python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --xclbin-path=build/decoder.xclbin --insts-path=build/decoder_insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 184, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 174, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   67 |         flair::gru_step(
-      |         ^~~~~~~~~~~~~~~
-      |         gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
-
-make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
+python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gen_decoder_data.py --seq-len 10 --window-index 2
+latent:        (64,) bf16 -> decoder_latent.bin (128 B)
+h0:            (64,) bf16 -> decoder_h0.bin (128 B)
+gru params:    (24960,) bf16 -> decoder_gru_params.bin (49920 B)
+full params:   (30486,) bf16 -> decoder_params.bin (60972 B)
+x_num:         (10, 21) bf16 -> decoder_x_num.bin (420 B)
+hidden_seq:    (10, 64) f32 -> decoder_hidden_golden.bin (2560 B)
+recon:         (10, 21) f32 -> decoder_golden_recon.bin (840 B)
+MSE score:     0.38243172 -> decoder_golden_score.bin
+golden:        NPU-like bf16-rounded reference
+recon[0, :5] = [-0.17635173 -0.27663517 -0.19924903 -0.22667271 -0.03835452]
 
 
 $ make -f Makefile.decoder run SEQ_LEN=10 WINDOW_INDEX=2
 --------------------------------------------------------------------------------
-mkdir -p build
-python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --xclbin-path=build/decoder.xclbin --insts-path=build/decoder_insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 184, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 174, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   67 |         flair::gru_step(
-      |         ^~~~~~~~~~~~~~~
-      |         gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
+python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gen_decoder_data.py --seq-len 10 --window-index 2
+latent:        (64,) bf16 -> decoder_latent.bin (128 B)
+h0:            (64,) bf16 -> decoder_h0.bin (128 B)
+gru params:    (24960,) bf16 -> decoder_gru_params.bin (49920 B)
+full params:   (30486,) bf16 -> decoder_params.bin (60972 B)
+x_num:         (10, 21) bf16 -> decoder_x_num.bin (420 B)
+hidden_seq:    (10, 64) f32 -> decoder_hidden_golden.bin (2560 B)
+recon:         (10, 21) f32 -> decoder_golden_recon.bin (840 B)
+MSE score:     0.38243172 -> decoder_golden_score.bin
+golden:        NPU-like bf16-rounded reference
+recon[0, :5] = [-0.17635173 -0.27663517 -0.19924903 -0.22667271 -0.03835452]
+powershell.exe ./gru_decoder.exe -x build/decoder.xclbin -i build/decoder_insts.bin -k MLIR_AIE -v 1
+Sequence instr count: 105
+Loading xclbin: build/decoder.xclbin
+Kernel opcode: MLIR_AIE
+Name: MLIR_AIE
+Registering xclbin: build/decoder.xclbin
+Getting hardware context.
+Getting handle to kernel:MLIR_AIE
+Writing data into buffer objects.
+Running Kernel.
+Running Kernel.
+Verifying results ...
+  mismatch[t=0, h=0]: got 1.46875 ref 0.0410156 |d|=1.42773
+  mismatch[t=0, h=1]: got -835584 ref -0.515625 |d|=835584
+  mismatch[t=0, h=2]: got 9.0625 ref -0.585938 |d|=9.64844
+  mismatch[t=0, h=3]: got -540672 ref 0.330078 |d|=540672
+  mismatch[t=0, h=4]: got 2.78125 ref 0.167969 |d|=2.61328
+  mismatch[t=0, h=5]: got -33 ref 0.605469 |d|=33.6055
+  mismatch[t=0, h=6]: got -74.5 ref 0.125977 |d|=74.626
+  mismatch[t=0, h=7]: got -823296 ref 0.333984 |d|=823296
+  mismatch[t=0, h=16]: got -4.5625 ref 0.223633 |d|=4.78613
+  mismatch[t=0, h=17]: got 0.390625 ref -0.431641 |d|=0.822266
+  mismatch[t=0, h=18]: got -0.375 ref -0.824219 |d|=0.449219
+  mismatch[t=0, h=19]: got 13.3125 ref -0.328125 |d|=13.6406
+  mismatch[t=0, h=20]: got -3632 ref -0.144531 |d|=3631.86
+  mismatch[t=0, h=21]: got 2.10938 ref 0.185547 |d|=1.92383
+  mismatch[t=0, h=22]: got -5.53125 ref -0.769531 |d|=4.76172
+  mismatch[t=0, h=23]: got -26.125 ref 0.21582 |d|=26.3408
+  mismatch[t=0, h=32]: got -20.75 ref -0.0830078 |d|=20.667
+  mismatch[t=0, h=33]: got -99.5 ref 0.898438 |d|=100.398
+  mismatch[t=0, h=34]: got -0.431641 ref -0.065918 |d|=0.365723
+  mismatch[t=0, h=35]: got -205 ref -0.628906 |d|=204.371
+decoder hidden_seq max abs error vs golden: 4.32346e+18  mean abs error: 6.50207e+16  atol=0.1  errors=592/640
+FAIL: decoder hidden_seq has mismatches.
+Verify time: 0secs.
 
-make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
+Avg NPU time: 1286us.
+
+Min NPU time: 1286us.
+
+Max NPU time: 1286us.
+
+Error count: 592
+
+
+Failed.
+
+make: *** [Makefile.decoder:40: run] Error 1
 
 
 $ make -f Makefile.decoder score SEQ_LEN=10 WINDOW_INDEX=2
 --------------------------------------------------------------------------------
 python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/compare_anomaly_score.py --seq-len 10 --window-index 2
-decoder_npu_hidden.bin not found -- run the decoder stage first (make -f Makefile.decoder run).
-make: *** [Makefile.decoder:46: score] Error 1
+====================================================================
+FLAIR anomaly score - NPU vs reference  (window 2, T=10)
+====================================================================
+  NPU-derived score (from NPU hidden_seq): 433337404905656109031499920291397632.000000
+  Float reference  (PyTorch-precision)   : 0.382642
+  bf16 golden score (gen_decoder_data)   : 0.382432
+--------------------------------------------------------------------
+  |NPU - float ref|      : 433337404905656109031499920291397632.000000
+  relative error         : 113248790676863012427539322039059873792.00%
+====================================================================
+NPU anomaly score differs >15% from PyTorch.
 
 
 $ make -f Makefile.decoder SEQ_LEN=10 WINDOW_INDEX=3
 --------------------------------------------------------------------------------
-mkdir -p build
-python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --xclbin-path=build/decoder.xclbin --insts-path=build/decoder_insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 184, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 174, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   67 |         flair::gru_step(
-      |         ^~~~~~~~~~~~~~~
-      |         gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
-
-make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
+python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gen_decoder_data.py --seq-len 10 --window-index 3
+latent:        (64,) bf16 -> decoder_latent.bin (128 B)
+h0:            (64,) bf16 -> decoder_h0.bin (128 B)
+gru params:    (24960,) bf16 -> decoder_gru_params.bin (49920 B)
+full params:   (30486,) bf16 -> decoder_params.bin (60972 B)
+x_num:         (10, 21) bf16 -> decoder_x_num.bin (420 B)
+hidden_seq:    (10, 64) f32 -> decoder_hidden_golden.bin (2560 B)
+recon:         (10, 21) f32 -> decoder_golden_recon.bin (840 B)
+MSE score:     0.40040043 -> decoder_golden_score.bin
+golden:        NPU-like bf16-rounded reference
+recon[0, :5] = [ 0.02552551 -0.21786642 -0.17370892 -0.19149292  0.06555271]
 
 
 $ make -f Makefile.decoder run SEQ_LEN=10 WINDOW_INDEX=3
 --------------------------------------------------------------------------------
-mkdir -p build
-python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --xclbin-path=build/decoder.xclbin --insts-path=build/decoder_insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 184, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 174, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   67 |         flair::gru_step(
-      |         ^~~~~~~~~~~~~~~
-      |         gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
+python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gen_decoder_data.py --seq-len 10 --window-index 3
+latent:        (64,) bf16 -> decoder_latent.bin (128 B)
+h0:            (64,) bf16 -> decoder_h0.bin (128 B)
+gru params:    (24960,) bf16 -> decoder_gru_params.bin (49920 B)
+full params:   (30486,) bf16 -> decoder_params.bin (60972 B)
+x_num:         (10, 21) bf16 -> decoder_x_num.bin (420 B)
+hidden_seq:    (10, 64) f32 -> decoder_hidden_golden.bin (2560 B)
+recon:         (10, 21) f32 -> decoder_golden_recon.bin (840 B)
+MSE score:     0.40040043 -> decoder_golden_score.bin
+golden:        NPU-like bf16-rounded reference
+recon[0, :5] = [ 0.02552551 -0.21786642 -0.17370892 -0.19149292  0.06555271]
+powershell.exe ./gru_decoder.exe -x build/decoder.xclbin -i build/decoder_insts.bin -k MLIR_AIE -v 1
+Sequence instr count: 105
+Loading xclbin: build/decoder.xclbin
+Kernel opcode: MLIR_AIE
+Name: MLIR_AIE
+Registering xclbin: build/decoder.xclbin
+Getting hardware context.
+Getting handle to kernel:MLIR_AIE
+Writing data into buffer objects.
+Running Kernel.
+Running Kernel.
+Verifying results ...
+  mismatch[t=0, h=0]: got -0.0117188 ref -0.359375 |d|=0.347656
+  mismatch[t=0, h=1]: got -119296 ref -0.443359 |d|=119296
+  mismatch[t=0, h=2]: got -14.25 ref -0.742188 |d|=13.5078
+  mismatch[t=0, h=3]: got -104960 ref 0.310547 |d|=104960
+  mismatch[t=0, h=4]: got 1.82812 ref -0.0732422 |d|=1.90137
+  mismatch[t=0, h=5]: got 430 ref 0.632812 |d|=429.367
+  mismatch[t=0, h=6]: got 18.875 ref 0.453125 |d|=18.4219
+  mismatch[t=0, h=7]: got -118784 ref -0.0507812 |d|=118784
+  mismatch[t=0, h=17]: got -2.04688 ref -0.535156 |d|=1.51172
+  mismatch[t=0, h=18]: got -0.414062 ref -0.847656 |d|=0.433594
+  mismatch[t=0, h=19]: got 0.710938 ref -0.373047 |d|=1.08398
+  mismatch[t=0, h=20]: got 8.8125 ref 0.0722656 |d|=8.74023
+  mismatch[t=0, h=21]: got 0.773438 ref -0.0332031 |d|=0.806641
+  mismatch[t=0, h=23]: got 48.5 ref 0.574219 |d|=47.9258
+  mismatch[t=0, h=32]: got -14.9375 ref -0.175781 |d|=14.7617
+  mismatch[t=0, h=33]: got -11 ref 0.828125 |d|=11.8281
+  mismatch[t=0, h=34]: got 0.199219 ref -0.328125 |d|=0.527344
+  mismatch[t=0, h=35]: got -49.25 ref -0.230469 |d|=49.0195
+  mismatch[t=0, h=36]: got 0.625 ref -0.0844727 |d|=0.709473
+  mismatch[t=0, h=37]: got -1.06535e+09 ref 0.118652 |d|=1.06535e+09
+decoder hidden_seq max abs error vs golden: 1.19957e+09  mean abs error: 1.76086e+07  atol=0.1  errors=593/640
+FAIL: decoder hidden_seq has mismatches.
+Verify time: 0secs.
 
-make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
+Avg NPU time: 1241us.
+
+Min NPU time: 1241us.
+
+Max NPU time: 1241us.
+
+Error count: 593
+
+
+Failed.
+
+make: *** [Makefile.decoder:40: run] Error 1
 
 
 $ make -f Makefile.decoder score SEQ_LEN=10 WINDOW_INDEX=3
 --------------------------------------------------------------------------------
 python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/compare_anomaly_score.py --seq-len 10 --window-index 3
-decoder_npu_hidden.bin not found -- run the decoder stage first (make -f Makefile.decoder run).
-make: *** [Makefile.decoder:46: score] Error 1
+====================================================================
+FLAIR anomaly score - NPU vs reference  (window 3, T=10)
+====================================================================
+  NPU-derived score (from NPU hidden_seq): 31796493295812608.000000
+  Float reference  (PyTorch-precision)   : 0.400467
+  bf16 golden score (gen_decoder_data)   : 0.400400
+--------------------------------------------------------------------
+  |NPU - float ref|      : 31796493295812608.000000
+  relative error         : 7939848061468796928.00%
+====================================================================
+NPU anomaly score differs >15% from PyTorch.
 
 
 $ make -f Makefile.decoder SEQ_LEN=10 WINDOW_INDEX=4
 --------------------------------------------------------------------------------
-mkdir -p build
-python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --xclbin-path=build/decoder.xclbin --insts-path=build/decoder_insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 184, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 174, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   67 |         flair::gru_step(
-      |         ^~~~~~~~~~~~~~~
-      |         gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
-
-make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
+python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gen_decoder_data.py --seq-len 10 --window-index 4
+latent:        (64,) bf16 -> decoder_latent.bin (128 B)
+h0:            (64,) bf16 -> decoder_h0.bin (128 B)
+gru params:    (24960,) bf16 -> decoder_gru_params.bin (49920 B)
+full params:   (30486,) bf16 -> decoder_params.bin (60972 B)
+x_num:         (10, 21) bf16 -> decoder_x_num.bin (420 B)
+hidden_seq:    (10, 64) f32 -> decoder_hidden_golden.bin (2560 B)
+recon:         (10, 21) f32 -> decoder_golden_recon.bin (840 B)
+MSE score:     0.43726471 -> decoder_golden_score.bin
+golden:        NPU-like bf16-rounded reference
+recon[0, :5] = [ 0.9845656  -0.11356407 -0.07359648  0.01330125  0.2428872 ]
 
 
 $ make -f Makefile.decoder run SEQ_LEN=10 WINDOW_INDEX=4
 --------------------------------------------------------------------------------
-mkdir -p build
-python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --xclbin-path=build/decoder.xclbin --insts-path=build/decoder_insts.bin
-Traceback (most recent call last):
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 184, in <module>
-    main()
-  File "/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gru_decoder.py", line 174, in main
-    run_design_cli(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/hostruntime/cli.py", line 230, in run_design_cli
-    spec.compile(**compile_opts)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/callabledesign.py", line 423, in compile
-    return self.compilable.compile(
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/jit/compilabledesign.py", line 301, in compile
-    compile_external_kernel(func, kernel_dir, target_arch)
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 317, in compile_external_kernel
-    compile_cxx_core_function(
-  File "/home/test_user/iron_work/mlir-aie/ironenv/lib/python3.12/site-packages/mlir_aie/python/aie/utils/compile/utils.py", line 139, in compile_cxx_core_function
-    raise RuntimeError(f"[{tool}] compilation failed:\n{ret.stderr.decode()}")
-RuntimeError: [Peano] compilation failed:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
-   53 |     float d = (float)denom_arr[j];
-      |                                ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
-   59 |     float y_refined = y * correction;
-      |                           ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
-   60 |     out_arr[j] = (bfloat16)y_refined;
-      |             ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
-   62 |   return aie::load_v<16>(out_arr);
-      |   ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
-      |                                 ^~~~~~~~~
-      |                                 flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
-  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
-      |                                   ^~~~~~~~~
-      |                                   flair::sigmoid16
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
-   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
-      | ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
-  176 | } // namespace flair
-      | ^
-In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
-   67 |         flair::gru_step(
-      |         ^~~~~~~~~~~~~~~
-      |         gru_step
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
-  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
-      |             ^
-9 errors generated.
+python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/gen_decoder_data.py --seq-len 10 --window-index 4
+latent:        (64,) bf16 -> decoder_latent.bin (128 B)
+h0:            (64,) bf16 -> decoder_h0.bin (128 B)
+gru params:    (24960,) bf16 -> decoder_gru_params.bin (49920 B)
+full params:   (30486,) bf16 -> decoder_params.bin (60972 B)
+x_num:         (10, 21) bf16 -> decoder_x_num.bin (420 B)
+hidden_seq:    (10, 64) f32 -> decoder_hidden_golden.bin (2560 B)
+recon:         (10, 21) f32 -> decoder_golden_recon.bin (840 B)
+MSE score:     0.43726471 -> decoder_golden_score.bin
+golden:        NPU-like bf16-rounded reference
+recon[0, :5] = [ 0.9845656  -0.11356407 -0.07359648  0.01330125  0.2428872 ]
+powershell.exe ./gru_decoder.exe -x build/decoder.xclbin -i build/decoder_insts.bin -k MLIR_AIE -v 1
+Sequence instr count: 105
+Loading xclbin: build/decoder.xclbin
+Kernel opcode: MLIR_AIE
+Name: MLIR_AIE
+Registering xclbin: build/decoder.xclbin
+Getting hardware context.
+Getting handle to kernel:MLIR_AIE
+Writing data into buffer objects.
+Running Kernel.
+Running Kernel.
+Verifying results ...
+  mismatch[t=0, h=0]: got -0.318359 ref -0.507812 |d|=0.189453
+  mismatch[t=0, h=1]: got -1040 ref 0.253906 |d|=1040.25
+  mismatch[t=0, h=2]: got -122.5 ref -0.65625 |d|=121.844
+  mismatch[t=0, h=3]: got -1096 ref 0.0439453 |d|=1096.04
+  mismatch[t=0, h=4]: got -44.25 ref -0.417969 |d|=43.832
+  mismatch[t=0, h=5]: got 1256 ref 0.671875 |d|=1255.33
+  mismatch[t=0, h=6]: got 70.5 ref 0.734375 |d|=69.7656
+  mismatch[t=0, h=7]: got -1168 ref -0.636719 |d|=1167.36
+  mismatch[t=0, h=16]: got -0.308594 ref -0.582031 |d|=0.273438
+  mismatch[t=0, h=17]: got -0.361328 ref -0.613281 |d|=0.251953
+  mismatch[t=0, h=18]: got -0.0922852 ref -0.625 |d|=0.532715
+  mismatch[t=0, h=19]: got -0.12793 ref -0.300781 |d|=0.172852
+  mismatch[t=0, h=21]: got 0.217773 ref -0.441406 |d|=0.65918
+  mismatch[t=0, h=22]: got 5.03125 ref -0.785156 |d|=5.81641
+  mismatch[t=0, h=23]: got 8.3125 ref 0.707031 |d|=7.60547
+  mismatch[t=0, h=32]: got -6.5 ref -0.137695 |d|=6.3623
+  mismatch[t=0, h=33]: got -0.390625 ref 0.464844 |d|=0.855469
+  mismatch[t=0, h=34]: got -0.15332 ref -0.554688 |d|=0.401367
+  mismatch[t=0, h=35]: got -8.125 ref 0.410156 |d|=8.53516
+  mismatch[t=0, h=36]: got -0.102539 ref -0.617188 |d|=0.514648
+decoder hidden_seq max abs error vs golden: 1.51875e+35  mean abs error: 2.06273e+33  atol=0.1  errors=584/640
+FAIL: decoder hidden_seq has mismatches.
+Verify time: 0secs.
 
-make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
+Avg NPU time: 1305us.
+
+Min NPU time: 1305us.
+
+Max NPU time: 1305us.
+
+Error count: 584
+
+
+Failed.
+
+make: *** [Makefile.decoder:40: run] Error 1
 
 
 $ make -f Makefile.decoder score SEQ_LEN=10 WINDOW_INDEX=4
 --------------------------------------------------------------------------------
 python3 /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/compare_anomaly_score.py --seq-len 10 --window-index 4
-decoder_npu_hidden.bin not found -- run the decoder stage first (make -f Makefile.decoder run).
-make: *** [Makefile.decoder:46: score] Error 1
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/compare_anomaly_score.py:96: RuntimeWarning: invalid value encountered in matmul
+  recon = hidden_seq @ W_out.T + b_out            # (T, 21)
+====================================================================
+FLAIR anomaly score - NPU vs reference  (window 4, T=10)
+====================================================================
+  NPU-derived score (from NPU hidden_seq): nan
+  Float reference  (PyTorch-precision)   : 0.437475
+  bf16 golden score (gen_decoder_data)   : 0.437265
+--------------------------------------------------------------------
+  |NPU - float ref|      : nan
+  relative error         : nan%
+====================================================================
+NPU anomaly score differs >15% from PyTorch.
 
