@@ -36,16 +36,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/gru.prj/gru_encoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_encoder.cc:43:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/gru.prj/gru_encoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_encoder.cc:68:5: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   68 |     flair::gru_step(x_t, h, w_ih, w_hh, b_ih, b_hh, INPUT_DIM);
+      |     ^~~~~~~~~~~~~~~
+      |     gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.encoder:52: build/gru.xclbin] Error 1
 
@@ -69,7 +104,7 @@ cd _build && powershell.exe cmake `wslpath -w /mnt/c/Technical/mlir-aie/programm
 -- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
--- Configuring done (2.4s)
+-- Configuring done (2.5s)
 -- Generating done (0.0s)
 -- Build files have been written to: C:/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/_build
 cd _build && powershell.exe cmake --build . --config Release
@@ -111,16 +146,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/gru.prj/gru_encoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_encoder.cc:43:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/gru.prj/gru_encoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_encoder.cc:68:5: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   68 |     flair::gru_step(x_t, h, w_ih, w_hh, b_ih, b_hh, INPUT_DIM);
+      |     ^~~~~~~~~~~~~~~
+      |     gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.encoder:52: build/gru.xclbin] Error 1
 
@@ -148,16 +218,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   67 |         flair::gru_step(
+      |         ^~~~~~~~~~~~~~~
+      |         gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
 
@@ -181,7 +286,7 @@ cd _build && powershell.exe cmake `wslpath -w /mnt/c/Technical/mlir-aie/programm
 -- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
--- Configuring done (2.5s)
+-- Configuring done (2.6s)
 -- Generating done (0.0s)
 -- Build files have been written to: C:/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/_build
 cd _build && powershell.exe cmake --build . --config Release
@@ -223,16 +328,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   67 |         flair::gru_step(
+      |         ^~~~~~~~~~~~~~~
+      |         gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
 
@@ -267,16 +407,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   67 |         flair::gru_step(
+      |         ^~~~~~~~~~~~~~~
+      |         gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
 
@@ -304,16 +479,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   67 |         flair::gru_step(
+      |         ^~~~~~~~~~~~~~~
+      |         gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
 
@@ -348,16 +558,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   67 |         flair::gru_step(
+      |         ^~~~~~~~~~~~~~~
+      |         gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
 
@@ -385,16 +630,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   67 |         flair::gru_step(
+      |         ^~~~~~~~~~~~~~~
+      |         gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
 
@@ -429,16 +709,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   67 |         flair::gru_step(
+      |         ^~~~~~~~~~~~~~~
+      |         gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
 
@@ -466,16 +781,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   67 |         flair::gru_step(
+      |         ^~~~~~~~~~~~~~~
+      |         gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
 
@@ -510,16 +860,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   67 |         flair::gru_step(
+      |         ^~~~~~~~~~~~~~~
+      |         gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
 
@@ -547,16 +932,51 @@ Traceback (most recent call last):
 RuntimeError: [Peano] compilation failed:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
 In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:26:
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:54:33: error: use of undeclared identifier 'd'
-   54 |     float y = (float)getInvBf16(d);
-      |                                 ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:56:21: error: use of undeclared identifier 'd'
-   56 |     y = y * (2.0f - d * y);
-      |                     ^
-/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:57:13: error: use of undeclared identifier 'j'
-   57 |     out_arr[j] = (bfloat16)y;
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:53:32: error: use of undeclared identifier 'j'
+   53 |     float d = (float)denom_arr[j];
+      |                                ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:59:27: error: use of undeclared identifier 'correction'
+   59 |     float y_refined = y * correction;
+      |                           ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:60:13: error: use of undeclared identifier 'j'
+   60 |     out_arr[j] = (bfloat16)y_refined;
       |             ^
-3 errors generated.
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:62:3: error: expected unqualified-id
+   62 |   return aie::load_v<16>(out_arr);
+      |   ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:71:33: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+   71 |   aie::vector<bfloat16, 16> s = sigmoid16(two_x);
+      |                                 ^~~~~~~~~
+      |                                 flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:152:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  152 |     aie::vector<bfloat16, 16> r = sigmoid16(pre_r);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:157:35: error: use of undeclared identifier 'sigmoid16'; did you mean 'flair::sigmoid16'?
+  157 |     aie::vector<bfloat16, 16> z = sigmoid16(pre_z);
+      |                                   ^~~~~~~~~
+      |                                   flair::sigmoid16
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:40:1: note: 'flair::sigmoid16' declared here
+   40 | sigmoid16(const aie::vector<bfloat16, 16> &x) {
+      | ^
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:176:1: error: extraneous closing brace ('}')
+  176 | } // namespace flair
+      | ^
+In file included from /mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/build/decoder.prj/gru_decoder_bf16.cc:1:
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_decoder.cc:67:9: error: no member named 'gru_step' in namespace 'flair'; did you mean simply 'gru_step'?
+   67 |         flair::gru_step(
+      |         ^~~~~~~~~~~~~~~
+      |         gru_step
+/mnt/c/Technical/mlir-aie/programming_examples/FLAIR_MC2/npu/kernels/gru_common.h:125:13: note: 'gru_step' declared here
+  125 | inline void gru_step(const bfloat16 *restrict x_in, bfloat16 *restrict h,
+      |             ^
+9 errors generated.
 
 make: *** [Makefile.decoder:29: build/decoder.xclbin] Error 1
 
