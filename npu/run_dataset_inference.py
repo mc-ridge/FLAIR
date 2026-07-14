@@ -221,10 +221,26 @@ def main() -> None:
                         "cost for reasons in the compiled design, not the "
                         "matvec compute), so it's not used here. Decoder tile "
                         "budget caps this near 6-7 (1408B/window output).")
+    p.add_argument("--decoder-mode", choices=["unfused", "fused"], default="unfused",
+                   help="unfused: decoder GRU on NPU then hidden_to_output on host; "
+                        "fused: decoder GRU + hidden_to_output on NPU, output recon directly.")
+
     args = p.parse_args()
     T = args.seq_len
     B_enc = args.batch_encoder
     B_dec = args.batch_decoder
+    decoder_mode = args.decoder_mode
+
+    encoder_xclbin = f"build/gru_b{B_enc}.xclbin"
+    encoder_insts = f"build/insts_b{B_enc}.bin"
+
+    if decoder_mode == "fused":
+        decoder_xclbin = f"build/decoder_fused_b{B_dec}.xclbin"
+        decoder_insts = f"build/decoder_fused_b{B_dec}_insts.bin"
+    else:
+        decoder_xclbin = f"build/decoder_b{B_dec}.xclbin"
+        decoder_insts = f"build/decoder_b{B_dec}_insts.bin"
+
     B_lcm = math.lcm(B_enc, B_dec)
 
     ckpt_path = Path(args.ckpt) if args.ckpt else _CKPT
