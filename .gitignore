@@ -1,0 +1,31 @@
+cat > .gitignore <<'EOF'
+# Python
+**/__pycache__/
+**/*.pyc
+
+# NPU / IRON build outputs
+npu/build/
+npu/_build/
+npu/*.xclbin
+npu/*insts*.bin
+npu/*.bin
+npu/*.npy
+npu/*.csv
+npu/results/
+
+# Windows/CMake binaries
+npu/*.exe
+npu/*.lib
+npu/*.obj
+npu/*.pdb
+npu/*.sln
+npu/*.slnx
+npu/*.vcxproj
+npu/*.vcxproj.filters
+
+# Large/local datasets and checkpoints
+data/
+experiments/
+EOF
+
+
