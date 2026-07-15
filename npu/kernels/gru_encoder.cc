@@ -73,12 +73,24 @@ void gru_encoder_impl(bfloat16 *restrict x_window, bfloat16 *restrict params,
     for (int i = 0; i < H; i++)
       h[i] = (bfloat16)0.0f;
 
+    // Per-timestep gi (the encoder's x_t CHANGES every step, so gi is NOT
+    // invariant -- can't hoist like the decoder). Computed here in the caller,
+    // then fed to gru_step_with_gi. This is IDENTICAL math to the old
+    // gru_step(x_t, ...) call (gi = w_ih @ x_t + b_ih, then gh + gate), but
+    // routes the gate loop through gru_step_with_gi -- the leaner function the
+    // decoder uses, which measures far faster on hardware than the monolithic
+    // gru_step for the same work (encoder was 417us/window of pure compute,
+    // ~165us above a component model; diag_encoder_timing localized it to the
+    // gru_step path, not DMA). Peak stack frame is caller gi(384) +
+    // gru_step_with_gi gh(384) + h(128) = 896B, same as the old gru_step path.
+    alignas(aie::vector_decl_align) bfloat16 gi[H3];
     for (int t = 0; t < T; t++) {
       // x_window_b[t] is a length-INPUT_DIM slice at element offset
-      // t*INPUT_DIM. gru_step reads x_in scalar-only, so this unaligned
-      // offset is fine.
+      // t*INPUT_DIM. matvec_bias reads x_in scalar/vector; the offset t*48 is
+      // 32-byte aligned (48 = 3*16), so the vectorized path is valid.
       const bfloat16 *restrict x_t = x_window_b + t * INPUT_DIM;
-      flair::gru_step(x_t, h, w_ih, w_hh, b_ih, b_hh, INPUT_DIM);
+      flair::matvec_bias(w_ih, x_t, b_ih, gi, H3, INPUT_DIM);
+      flair::gru_step_with_gi(gi, h, w_hh, b_hh);
     }
 
     for (int i = 0; i < H; i++)
@@ -88,10 +100,47 @@ void gru_encoder_impl(bfloat16 *restrict x_window, bfloat16 *restrict params,
   event1();
 }
 
+// DIAGNOSTIC ONLY -- does virtually no compute. Same (x_window, params,
+// latent) signature and buffer sizes as gru_encoder_bf16, and the SAME
+// ObjectFifo/DMA wiring (so x_window + params still get DMA'd in at full
+// size), but calls NO gru_step. Purpose: localize the encoder's ~145us
+// unexplained per-window overhead. If this shows ~the same low floor as the
+// decoder-noop (~32us/window), the overhead is in the gru_step/compute path
+// (a codegen problem). If it stays high, the overhead is dispatch/DMA of the
+// encoder's large x_window input (15x the decoder's input per dispatch).
+void gru_encoder_noop_impl(bfloat16 *restrict x_window, bfloat16 *restrict params,
+                           bfloat16 *restrict latent) {
+  event0();
+
+  constexpr int H = HIDDEN_DIM;
+  constexpr int T = SEQ_LEN;
+
+  // Touch params[0] so the params DMA/read isn't optimized away entirely.
+  bfloat16 touch = params[0];
+
+  for (int b = 0; b < BATCH; b++) {
+    bfloat16 *restrict x_window_b = x_window + b * T * INPUT_DIM;
+    bfloat16 *restrict latent_b = latent + b * H;
+
+    // Write latent from x_window (reads the input buffer so its DMA/load
+    // isn't dead, but does NO matvec/gate compute). +touch-touch keeps params
+    // live without changing the value.
+    for (int i = 0; i < H; i++)
+      latent_b[i] = x_window_b[i] + touch - touch;
+  }
+
+  event1();
+}
+
 extern "C" {
 
 void gru_encoder_bf16(bfloat16 *x_window, bfloat16 *params, bfloat16 *latent) {
   gru_encoder_impl(x_window, params, latent);
+}
+
+void gru_encoder_noop_bf16(bfloat16 *x_window, bfloat16 *params,
+                           bfloat16 *latent) {
+  gru_encoder_noop_impl(x_window, params, latent);
 }
 
 } // extern "C"
