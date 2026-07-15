@@ -265,25 +265,51 @@ def main() -> None:
                    help="unfused: decoder GRU on NPU then hidden_to_output on host; "
                         "fused: decoder GRU + hidden_to_output on NPU, output recon directly.")
 
+    p.add_argument("--encoder-4core", action="store_true",
+                   help="run the encoder across four compute tiles")
+    p.add_argument("--decoder-4core", action="store_true",
+                   help="run the unfused decoder across four compute tiles")
+
 
     args = p.parse_args()
     T = args.seq_len
     B_enc = args.batch_encoder
     B_dec = args.batch_decoder
     decoder_mode = args.decoder_mode
+    encoder_4core = args.encoder_4core
+    decoder_4core = args.decoder_4core
+
+    if encoder_4core and B_enc % 4:
+        p.error("--encoder-4core requires --batch-encoder divisible by 4")
+
+    if decoder_4core and B_dec % 4:
+        p.error("--decoder-4core requires --batch-decoder divisible by 4")
+
+    if decoder_4core and decoder_mode != "unfused":
+        p.error("--decoder-4core currently supports only --decoder-mode unfused")
 
 
-    encoder_xclbin = f"build/gru_b{B_enc}.xclbin"
-    encoder_insts = f"build/insts_b{B_enc}.bin"
+    if encoder_4core:
+        encoder_xclbin = "build/gru_4core.xclbin"
+        encoder_insts = "build/gru_4core_insts.bin"
+        encoder_project = "gru_4core.prj"
+    else:
+        encoder_xclbin = f"build/gru_b{B_enc}.xclbin"
+        encoder_insts = f"build/insts_b{B_enc}.bin"
+        encoder_project = f"gru_b{B_enc}.prj"
 
-
-    if decoder_mode == "fused":
+    if decoder_4core:
+        decoder_xclbin = "build/decoder_4core.xclbin"
+        decoder_insts = "build/decoder_4core_insts.bin"
+        decoder_project = "decoder_4core.prj"
+    elif decoder_mode == "fused":
         decoder_xclbin = f"build/decoder_fused_b{B_dec}.xclbin"
         decoder_insts = f"build/decoder_fused_b{B_dec}_insts.bin"
+        decoder_project = f"decoder_fused_b{B_dec}.prj"
     else:
         decoder_xclbin = f"build/decoder_b{B_dec}.xclbin"
         decoder_insts = f"build/decoder_b{B_dec}_insts.bin"
-
+        decoder_project = f"decoder_b{B_dec}.prj"
 
     B_lcm = math.lcm(B_enc, B_dec)
 
@@ -417,19 +443,35 @@ def main() -> None:
         # just two fixed #include lines, unaffected by what's inside them --
         # see flair-npu-iron-kernel-gotchas memory item 10). Without this, a
         # kernel edit can silently test stale, unchanged compiled code.
+        # Remove the actual selected batch-specific projects.
+        shutil.rmtree(_HERE / "build" / encoder_project, ignore_errors=True)
+        shutil.rmtree(_HERE / "build" / decoder_project, ignore_errors=True)
+
         shutil.rmtree(_HERE / "build" / "gru.prj", ignore_errors=True)
         shutil.rmtree(_HERE / "build" / "decoder.prj", ignore_errors=True)
         shutil.rmtree(_HERE / "build" / "decoder_fused.prj", ignore_errors=True)
 
-        sh(["python3", "gru_encoder.py", "--dev", "npu", "--input-dim",
-            str(INPUT_DIM_PADDED), "--hidden-dim", str(HIDDEN_DIM), "--seq-len",
-            str(T), "--batch", str(B_enc), "--xclbin-path", encoder_xclbin,
-            "--insts-path", encoder_insts])
+        encoder_script = "gru_encoder_4core.py" if encoder_4core else "gru_encoder.py"
+        encoder_compile_batch = B_enc // 4 if encoder_4core else B_enc
 
-        decoder_script = "gru_decoder_fused.py" if decoder_mode == "fused" else "gru_decoder.py"
-        print(f"\n[build] decoder ({decoder_mode})")
+        print(f"\n[build] encoder ({'4-core' if encoder_4core else '1-core'})")
+        sh(["python3", encoder_script, "--dev", "npu", "--input-dim",
+            str(INPUT_DIM_PADDED), "--hidden-dim", str(HIDDEN_DIM), "--seq-len",
+            str(T), "--batch", str(encoder_compile_batch),
+            "--xclbin-path", encoder_xclbin, "--insts-path", encoder_insts])
+
+        if decoder_4core:
+            decoder_script = "gru_decoder_4core.py"
+            decoder_compile_batch = B_dec // 4
+        else:
+            decoder_script = "gru_decoder_fused.py" if decoder_mode == "fused" else "gru_decoder.py"
+            decoder_compile_batch = B_dec
+
+        decoder_label = "4-core unfused" if decoder_4core else decoder_mode
+        print(f"\n[build] decoder ({decoder_label})")
         sh(["python3", decoder_script, "--dev", "npu", "--hidden-dim",
-            str(HIDDEN_DIM), "--seq-len", str(T), "--batch", str(B_dec),
+            str(HIDDEN_DIM), "--seq-len", str(T),
+            "--batch", str(decoder_compile_batch),
             "--xclbin-path", decoder_xclbin, "--insts-path", decoder_insts])
         sh(["make", "-f", "Makefile.batch"] + xf)
 
