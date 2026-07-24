@@ -34,7 +34,7 @@ from aie.utils.hostruntime.argparse import add_compile_args, device_from_args
 from aie.utils.hostruntime.cli import run_design_cli
 
 
-NPU_DIR = Path(__file__).resolve().parent
+NPU_DIR = Path(__file__).resolve().parent.parent  # npu/ (this script lives in npu/diagnostics/)
 KERNELS_DIR = NPU_DIR / "kernels"
 KERNEL_SRC = KERNELS_DIR / "gru_decoder.cc"
 

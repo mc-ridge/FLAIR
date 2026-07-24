@@ -36,7 +36,7 @@ from aie.utils import config
 from aie.utils.hostruntime.argparse import add_compile_args, device_from_args
 from aie.utils.hostruntime.cli import run_design_cli
 
-_KERNELS_DIR = Path(__file__).parent / "kernels"
+_KERNELS_DIR = Path(__file__).resolve().parent.parent / "kernels"  # kernels/ is in npu/; this script lives in npu/diagnostics/
 _KERNEL_SRC = _KERNELS_DIR / "gru_encoder.cc"
 
 INPUT_DIM = 48

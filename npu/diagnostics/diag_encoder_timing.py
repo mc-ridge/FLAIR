@@ -39,7 +39,7 @@ from pathlib import Path
 import numpy as np
 from ml_dtypes import bfloat16
 
-_HERE = Path(__file__).resolve().parent
+_HERE = Path(__file__).resolve().parent.parent  # npu/ (this script lives in npu/diagnostics/); used as cwd + build/ + .bin anchor
 
 INPUT_DIM = 48   # padded encoder input length
 HIDDEN_DIM = 64
@@ -101,7 +101,7 @@ def main() -> None:
         sh(["python3", "gru_encoder.py", "--dev", "npu", "--input-dim", str(ID),
             "--hidden-dim", str(H), "--seq-len", str(T), "--batch", str(B),
             "--xclbin-path", "build/gru.xclbin", "--insts-path", "build/insts.bin"])
-        sh(["python3", "gru_encoder_noop.py", "--dev", "npu", "--input-dim", str(ID),
+        sh(["python3", "diagnostics/gru_encoder_noop.py", "--dev", "npu", "--input-dim", str(ID),
             "--hidden-dim", str(H), "--seq-len", str(T), "--batch", str(B),
             "--xclbin-path", "build/gru_noop.xclbin",
             "--insts-path", "build/gru_noop_insts.bin"])

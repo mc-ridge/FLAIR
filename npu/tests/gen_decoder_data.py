@@ -8,7 +8,7 @@ import torch
 
 
 
-_HERE = Path(__file__).resolve().parent
+_HERE = Path(__file__).resolve().parent.parent  # npu/ (script lives in npu/tests/); .bin outputs land here, where the Makefile harness reads them
 _REPO = _HERE.parent
 sys.path.insert(0, str(_REPO))
 

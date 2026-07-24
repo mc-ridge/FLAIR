@@ -6,8 +6,11 @@
 # does gru_step_with_gi's own reported size grow back toward gru_step's
 # (6336B, since it's no longer able to fold into the caller)?
 #
-# Usage (from npu/): bash diag_symbol_size.sh
+# Usage (WSL IRON env sourced): bash diagnostics/diag_symbol_size.sh
 set -uo pipefail
+
+# Lives in npu/diagnostics/ but operates on npu/ (build/, gru_decoder.py).
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 rm -rf build/decoder.prj
 python3 gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --batch 6 \

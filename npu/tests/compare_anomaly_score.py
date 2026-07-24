@@ -26,7 +26,7 @@ from pathlib import Path
 
 import numpy as np
 
-_HERE = Path(__file__).resolve().parent
+_HERE = Path(__file__).resolve().parent.parent  # npu/ (script lives in npu/tests/); reads the harness .bin files from here
 _REPO = _HERE.parent
 sys.path.insert(0, str(_REPO))
 

@@ -31,7 +31,7 @@ import numpy as np
 import torch
 from ml_dtypes import bfloat16
 
-_REPO = Path(__file__).resolve().parent.parent
+_REPO = Path(__file__).resolve().parent.parent.parent  # repo root (this script lives in npu/diagnostics/)
 sys.path.insert(0, str(_REPO))
 from src.models.flair_model import FLAIRAutoencoder, FLAIRConfig
 

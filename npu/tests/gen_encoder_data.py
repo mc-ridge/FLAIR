@@ -28,7 +28,7 @@ INPUT_DIM_PADDED = 48   # padded to a multiple of 16 so the w_ih matvec vectoriz
 HIDDEN_DIM = 64
 SEQ_LEN = 10  # default; override with --seq-len (must match the kernel's SEQ_LEN)
 
-_HERE = Path(__file__).resolve().parent
+_HERE = Path(__file__).resolve().parent.parent  # npu/ (script lives in npu/tests/); .bin outputs land here, where the Makefile harness reads them
 _REPO = _HERE.parent
 _CKPT = _REPO / "experiments" / "results" / "flair_minimal.pt"
 _NPZ = _REPO / "data" / "processed" / "preprocessed.npz"

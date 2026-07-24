@@ -30,11 +30,11 @@ $(eval $(call jit_xclbin,${xclbin_target},${insts_target},${aie_py_src},--dev ${
 
 ${xclbin_target} ${insts_target}: ${srcdir}/kernels/gru_decoder.cc ${srcdir}/kernels/gru_common.h
 
-$(eval $(call build_host_exe,${targetname},_build,test_decoder.cpp,${XRT_FLAGS} -DNPU_MODE=decoder -DINPUT_DIM=${HIDDEN_DIM} -DHIDDEN_DIM=${HIDDEN_DIM} -DSEQ_LEN=${SEQ_LEN} -DN_PARAMS=${N_PARAMS}))
+$(eval $(call build_host_exe,${targetname},_build,tests/test_decoder.cpp,${XRT_FLAGS} -DNPU_MODE=decoder -DINPUT_DIM=${HIDDEN_DIM} -DHIDDEN_DIM=${HIDDEN_DIM} -DSEQ_LEN=${SEQ_LEN} -DN_PARAMS=${N_PARAMS}))
 
 .PHONY: data
 data:
-	python3 ${srcdir}/gen_decoder_data.py --seq-len ${SEQ_LEN} --window-index ${WINDOW_INDEX}
+	python3 ${srcdir}/tests/gen_decoder_data.py --seq-len ${SEQ_LEN} --window-index ${WINDOW_INDEX}
 
 .PHONY: run
 run: ${targetname}.exe ${xclbin_target} ${insts_target} data
@@ -44,7 +44,7 @@ run: ${targetname}.exe ${xclbin_target} ${insts_target} data
 # (dumped by test_decoder.cpp) and compare to the PyTorch-precision reference.
 .PHONY: score
 score:
-	python3 ${srcdir}/compare_anomaly_score.py --seq-len ${SEQ_LEN} --window-index ${WINDOW_INDEX}
+	python3 ${srcdir}/tests/compare_anomaly_score.py --seq-len ${SEQ_LEN} --window-index ${WINDOW_INDEX}
 
 .PHONY: clean
 clean:

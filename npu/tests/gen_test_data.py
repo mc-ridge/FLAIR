@@ -32,7 +32,7 @@ INPUT_DIM = 45
 HIDDEN_DIM = 64
 
 # Resolve paths relative to the repo root regardless of CWD.
-_HERE = Path(__file__).resolve().parent
+_HERE = Path(__file__).resolve().parent.parent  # npu/ (script lives in npu/tests/); .bin outputs land here, where the Makefile harness reads them
 _REPO = _HERE.parent
 _CKPT = _REPO / "experiments" / "results" / "flair_minimal.pt"
 _NPZ = _REPO / "data" / "processed" / "preprocessed.npz"

@@ -367,7 +367,7 @@ def main() -> None:
     (_HERE / "all_x_windows.bin").write_bytes(x_windows.reshape(N_pad, -1).tobytes())
 
 
-    # Encoder params (padded w_ih), matching gen_encoder_data.py.
+    # Encoder params (padded w_ih), matching tests/gen_encoder_data.py.
     w_ih_e = sd["encoder.gru.weight_ih_l0"].numpy().astype(bfloat16)
     w_hh_e = sd["encoder.gru.weight_hh_l0"].numpy().astype(bfloat16)
     b_ih_e = sd["encoder.gru.bias_ih_l0"].numpy().astype(bfloat16)

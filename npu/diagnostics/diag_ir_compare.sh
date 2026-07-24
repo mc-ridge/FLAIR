@@ -14,8 +14,11 @@
 # --input-dim 48 --hidden-dim 64 --seq-len 10 --batch 6 --xclbin-path
 # build/gru.xclbin --insts-path build/insts.bin).
 #
-# Usage: bash diag_ir_compare.sh
+# Usage: bash diagnostics/diag_ir_compare.sh
 set -uo pipefail
+
+# Lives in npu/diagnostics/ but reads npu/build/*.prj -- anchor cwd to npu/.
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 PROJECTS=(
   "encoder:build/gru.prj"

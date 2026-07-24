@@ -17,8 +17,12 @@
 #      counts and a search for calls into getInvBf16/getExpBf16 (inlined vs
 #      real call instructions).
 #
-# Usage (from npu/, WSL IRON env sourced): bash diag_disasm_compare.sh
+# Usage (WSL IRON env sourced): bash diagnostics/diag_disasm_compare.sh
 set -uo pipefail
+
+# This script lives in npu/diagnostics/ but operates on npu/ (build/, the
+# top-level design drivers). Anchor cwd to npu/ regardless of where it's called.
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 echo "================================================================"
 echo "0. Force clean rebuild of everything (encoder + all decoder variants)"
@@ -30,9 +34,9 @@ python3 gru_encoder.py --dev npu --input-dim 48 --hidden-dim 64 --seq-len 10 \
   --batch 6 --xclbin-path build/gru.xclbin --insts-path build/insts.bin
 python3 gru_decoder.py --dev npu --hidden-dim 64 --seq-len 10 --batch 6 \
   --xclbin-path build/decoder.xclbin --insts-path build/decoder_insts.bin
-python3 gru_decoder_noop.py --dev npu --hidden-dim 64 --seq-len 10 --batch 6 \
+python3 diagnostics/gru_decoder_noop.py --dev npu --hidden-dim 64 --seq-len 10 --batch 6 \
   --xclbin-path build/decoder_noop.xclbin --insts-path build/decoder_noop_insts.bin
-python3 gru_decoder_matvec_only.py --dev npu --hidden-dim 64 --seq-len 10 \
+python3 diagnostics/gru_decoder_matvec_only.py --dev npu --hidden-dim 64 --seq-len 10 \
   --batch 6 --xclbin-path build/decoder_matvec_only.xclbin \
   --insts-path build/decoder_matvec_only_insts.bin
 

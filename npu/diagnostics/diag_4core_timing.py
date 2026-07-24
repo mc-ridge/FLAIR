@@ -32,7 +32,7 @@ from pathlib import Path
 import numpy as np
 from ml_dtypes import bfloat16
 
-_HERE = Path(__file__).resolve().parent
+_HERE = Path(__file__).resolve().parent.parent  # npu/ (this script lives in npu/diagnostics/); used as cwd + build/ + .bin anchor
 
 INPUT_DIM = 48
 HIDDEN_DIM = 64

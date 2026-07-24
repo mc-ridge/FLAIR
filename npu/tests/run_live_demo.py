@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 
 
-NPU_DIR = Path(__file__).resolve().parent
+NPU_DIR = Path(__file__).resolve().parent.parent  # npu/ (this script lives in npu/tests/); cwd for the Makefile harness
 
 
 def run(cmd: list[str], allow_fail: bool = False) -> int:

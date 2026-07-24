@@ -7,8 +7,11 @@
 # ExternalFunction compilation unit, e.g. gru_decoder_bf16.cc/.o, linked in
 # separately). This script finds and inspects THAT artifact instead.
 #
-# Usage: bash diag_ir_compare2.sh
+# Usage: bash diagnostics/diag_ir_compare2.sh
 set -uo pipefail
+
+# Lives in npu/diagnostics/ but reads npu/build/*.prj -- anchor cwd to npu/.
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 PROJECTS=(
   "encoder:build/gru.prj"

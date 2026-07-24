@@ -47,7 +47,7 @@ from pathlib import Path
 import numpy as np
 from ml_dtypes import bfloat16
 
-_HERE = Path(__file__).resolve().parent
+_HERE = Path(__file__).resolve().parent.parent  # npu/ (this script lives in npu/diagnostics/); used as cwd + build/ + .bin anchor
 
 HIDDEN_DIM = 64
 SEQ_LEN = 10
@@ -110,15 +110,15 @@ def main() -> None:
         sh(["python3", "gru_decoder.py", "--dev", "npu", "--hidden-dim", str(H),
             "--seq-len", str(T), "--batch", str(B), "--xclbin-path",
             "build/decoder.xclbin", "--insts-path", "build/decoder_insts.bin"])
-        sh(["python3", "gru_decoder_final.py", "--dev", "npu", "--hidden-dim",
+        sh(["python3", "diagnostics/gru_decoder_final.py", "--dev", "npu", "--hidden-dim",
             str(H), "--seq-len", str(T), "--batch", str(B), "--xclbin-path",
             "build/decoder_final.xclbin", "--insts-path",
             "build/decoder_final_insts.bin"])
-        sh(["python3", "gru_decoder_noop.py", "--dev", "npu", "--hidden-dim",
+        sh(["python3", "diagnostics/gru_decoder_noop.py", "--dev", "npu", "--hidden-dim",
             str(H), "--seq-len", str(T), "--batch", str(B), "--xclbin-path",
             "build/decoder_noop.xclbin", "--insts-path",
             "build/decoder_noop_insts.bin"])
-        sh(["python3", "gru_decoder_matvec_only.py", "--dev", "npu",
+        sh(["python3", "diagnostics/gru_decoder_matvec_only.py", "--dev", "npu",
             "--hidden-dim", str(H), "--seq-len", str(T), "--batch", str(B),
             "--xclbin-path", "build/decoder_matvec_only.xclbin",
             "--insts-path", "build/decoder_matvec_only_insts.bin"])

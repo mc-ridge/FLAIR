@@ -1,19 +1,15 @@
 #
-# gru_decoder_matvec_only.py  -- DIAGNOSTIC ONLY
+# gru_decoder_noop.py  -- DIAGNOSTIC ONLY
 #
-# IRON wrapper for kernels/gru_decoder.cc's gru_decoder_matvec_only_bf16:
-# does the SAME w_hh @ h matvec as gru_step_with_gi every timestep, but skips
-# the sigmoid/tanh gate-combine loop entirely.
+# IRON wrapper for kernels/gru_decoder.cc's gru_decoder_noop_bf16: SAME
+# (h0, params, hidden_seq) buffer signature/sizes and SAME ObjectFifo
+# acquire/release wiring as gru_decoder.py, but the kernel body does no
+# gru_step calls at all (no real compute).
 #
-# Purpose: bisect between the matvec and the gate-combine loop as the source
-# of the decoder's ~3300us/dispatch floor (already proven to be real compute,
-# not output size or dispatch structure -- see diag_decoder_timing.py). If
-# this collapses toward the noop floor (~200us/dispatch), the gate-combine
-# loop (sigmoid16's scalar getInvBf16 reciprocal loop) is the expensive
-# part. If it stays near unfused's ~3300us, the matvec itself is.
-#
-# Params layout matches gru_decoder.py: [w_ih | w_hh | b_ih | b_hh] (w_ih/
-# b_ih unused by the kernel but kept for identical buffer size/DMA shape).
+# Purpose: if this STILL shows the decoder's ~3300us/dispatch floor, the cost
+# is not about on-core compute -- it's structural to how this xclbin
+# dispatches (tile placement, buffer/DMA setup, etc.), independent of the
+# kernel body. Not used for scoring -- diag_decoder_timing.py drives it.
 #
 
 import argparse
@@ -29,7 +25,7 @@ from aie.utils.hostruntime.argparse import add_compile_args, device_from_args
 from aie.utils.hostruntime.cli import run_design_cli
 
 
-NPU_DIR = Path(__file__).resolve().parent
+NPU_DIR = Path(__file__).resolve().parent.parent  # npu/ (this script lives in npu/diagnostics/)
 KERNELS_DIR = NPU_DIR / "kernels"
 KERNEL_SRC = KERNELS_DIR / "gru_decoder.cc"
 
@@ -53,7 +49,7 @@ def _make_decoder_kernel(arg_types, compile_flags):
     source = f'#include "{KERNEL_SRC}"\n#include "{lut_cpp}"\n'
 
     return ExternalFunction(
-        "gru_decoder_matvec_only_bf16",
+        "gru_decoder_noop_bf16",
         source_string=source,
         arg_types=arg_types,
         include_dirs=include_dirs,
@@ -62,7 +58,7 @@ def _make_decoder_kernel(arg_types, compile_flags):
 
 
 @iron.jit
-def gru_decoder_matvec_only(
+def gru_decoder_noop(
     h0_vec: In,
     params: In,
     hidden_seq: Out,
@@ -72,6 +68,8 @@ def gru_decoder_matvec_only(
     batch: CompileTime[int] = BATCH,
 ):
     h3 = 3 * hidden_dim
+    # Same params size as gru_decoder.py, even though noop only reads
+    # params[0] -- keeps the DMA/buffer footprint identical for comparison.
     n_params = h3 * hidden_dim + h3 * hidden_dim + h3 + h3
 
     dtype = np.dtype[bfloat16]
@@ -118,7 +116,7 @@ def gru_decoder_matvec_only(
 
 
 def _make_argparser():
-    p = argparse.ArgumentParser(prog="FLAIR decoder GRU (matvec-only, diagnostic)")
+    p = argparse.ArgumentParser(prog="FLAIR decoder GRU (no-op, diagnostic)")
     add_compile_args(p)
     p.add_argument("--hidden-dim", type=int, default=HIDDEN_DIM)
     p.add_argument("--seq-len", type=int, default=SEQ_LEN)
@@ -144,7 +142,7 @@ def _run_and_verify(opts):
 def main():
     opts = _make_argparser().parse_args()
     run_design_cli(
-        gru_decoder_matvec_only,
+        gru_decoder_noop,
         opts,
         compile_kwargs=_compile_kwargs,
         run_and_verify=_run_and_verify,
