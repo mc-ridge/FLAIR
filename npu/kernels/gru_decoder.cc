@@ -1,24 +1,20 @@
-//===- gru_decoder.cc -----------------------------------
-//
-// FLAIR decoder GRU sequence kernel.
-//
-// Input:
-//   h0_vec      : bf16[HIDDEN_DIM]
-//   params      : bf16 decoder GRU params packed as:
-//                 [w_ih | w_hh | b_ih | b_hh]
-// Output:
-//   hidden_seq  : bf16[SEQ_LEN * HIDDEN_DIM]
-//
-// This does only the decoder GRU sequence for now:
-//   h = h0_vec
-//   for t in 0..SEQ_LEN-1:
-//       h = GRUCell(h0_vec, h)
-//       hidden_seq[t] = h
-//
-// Later we add:
-//   hidden_seq -> hidden_to_output -> x_hat_num -> MSE
-//
-//===------------------------------------------------------
+/*
+Authors: Mary-Claire Ridgeway, Daniel Eyraud
+
+FLAIR decoder GRU kernels (unfused, fused, and diagnostic variants)
+
+Constraints: 
+* Batch is the number of windows processed by one compute tile
+* The decoder input is the same at every timestep
+* GRU timesteps remain sequential 
+
+Diagnostic variants are used to isolate decoder overhead:
+* final_bf16         - full GRU compute, but only writes the final hidden state
+* noop_bf16          - preserves data movement with almost no computation
+* matvec_only_bf16   - measures recurrent matvec cost without gate nonlinearities
+These are for performance analysis only and are not used in final scoring
+
+*/
 
 #include <aie_api/aie.hpp>
 #include "aie_kernel_utils.h"
@@ -33,14 +29,12 @@
 #define SEQ_LEN 10
 #endif
 
-// Number of windows processed per kernel invocation. params (weights) are
-// resident and shared across the whole batch -- only h0_vec/hidden_seq grow
-// with BATCH. Defaults to 1 (identical to the original single-window
-// behavior) so existing single-window callers are unaffected.
 #ifndef BATCH
 #define BATCH 1
 #endif
 
+// Unfused decoder. Returns the hidden state from every timestep
+// Parameter layout: [w_ih | w_hh | b_ih | b_hh]
 extern "C" void gru_decoder_bf16(
     bfloat16 *h0_vec,
     bfloat16 *params,
@@ -49,11 +43,9 @@ extern "C" void gru_decoder_bf16(
     constexpr int H = HIDDEN_DIM;
     constexpr int H3 = 3 * H;
 
-    // Decoder GRU input_dim is HIDDEN_DIM because x_t = h0_vec.
+    // Decoder input_dim is HIDDEN_DIM because x_t = h0_vec
     constexpr int INPUT_DIM = HIDDEN_DIM;
 
-    // Packed params layout, shared across all BATCH windows:
-    // [w_ih | w_hh | b_ih | b_hh]
     bfloat16 *w_ih = params;
     bfloat16 *w_hh = w_ih + H3 * INPUT_DIM;
     bfloat16 *b_ih = w_hh + H3 * H;
@@ -63,19 +55,14 @@ extern "C" void gru_decoder_bf16(
         bfloat16 *h0_vec_b = h0_vec + b * H;
         bfloat16 *hidden_seq_b = hidden_seq + b * SEQ_LEN * H;
 
-        // Hidden state must be aligned because gru_step vector-loads/stores h.
+        // gru_step_with_gi vector-loads and stores this local hidden state
         alignas(aie::vector_decl_align) bfloat16 h[H];
 
-        // Initial decoder hidden state:
-        // h_prev = h0_vec_b
         for (int i = 0; i < H; i++) {
             h[i] = h0_vec_b[i];
         }
 
-        // Decoder input x_t = h0_vec_b is IDENTICAL on every timestep (no
-        // autoregressive/categorical feedback), so gi = w_ih @ h0_vec_b +
-        // b_ih is invariant too -- compute it ONCE instead of every
-        // timestep (gru_step would otherwise redo this same matvec 10x).
+        // x_t is constant, so w_ih @ x_t + b_ih is computed once per window
         alignas(aie::vector_decl_align) bfloat16 gi[H3];
         flair::matvec_bias(w_ih, h0_vec_b, b_ih, gi, H3, INPUT_DIM);
 
@@ -95,14 +82,10 @@ extern "C" void gru_decoder_bf16(
 #define OUTPUT_DIM 21
 #endif
 
-// Fused variant: computes the final reconstruction (hidden_to_output) ON
-// the core instead of returning the raw hidden_seq, so the output buffer
-// is BATCH*SEQ_LEN*OUTPUT_DIM (420B/window at OUTPUT_DIM=21) instead of
-// BATCH*SEQ_LEN*HIDDEN_DIM (1280B/window) -- a 3x smaller per-window output,
-// freeing L1 budget for a larger BATCH. Separate entry point from
-// gru_decoder_bf16 above so the single-window live-demo/verify flow
-// (test_decoder.cpp, gen_decoder_data.py, compare_anomaly_score.py) is
-// completely unaffected.
+// Fused decoder. Applies hidden_to_output on the compute tile and returns the
+// reconstructed numeric sequence.
+//
+// Parameter layout: [w_ih | w_hh | b_ih | b_hh | w_out | b_out]
 extern "C" void gru_decoder_fused_bf16(
     bfloat16 *h0_vec,
     bfloat16 *params,
@@ -113,8 +96,6 @@ extern "C" void gru_decoder_fused_bf16(
     constexpr int INPUT_DIM = HIDDEN_DIM;
     constexpr int OUT = OUTPUT_DIM;
 
-    // Packed params layout, shared across all BATCH windows:
-    // [w_ih | w_hh | b_ih | b_hh | w_out | b_out]
     bfloat16 *w_ih = params;
     bfloat16 *w_hh = w_ih + H3 * INPUT_DIM;
     bfloat16 *b_ih = w_hh + H3 * H;
@@ -142,20 +123,15 @@ extern "C" void gru_decoder_fused_bf16(
                 INPUT_DIM
             );
 
-            // hidden_to_output, fused: recon_b[t] = w_out @ h + b_out
+            // recon[t] = w_out @ h_t + b_out
             flair::matvec_bias(w_out, h, b_out, recon_b + t * OUT, OUT, H);
         }
     }
 }
 
-// DIAGNOSTIC ONLY -- not part of the scoring pipeline. Runs the exact same
-// full GRU sequence as gru_decoder_bf16, but writes ONLY the final hidden
-// state (BATCH*HIDDEN_DIM output, like the encoder's latent) instead of the
-// whole hidden_seq (BATCH*SEQ_LEN*HIDDEN_DIM). Purpose: isolate whether the
-// decoder's large fixed per-dispatch cost (~5.5x the encoder's) comes from
-// the per-timestep output writes / larger output DMA, or from the gru_step
-// compute itself. Identical compute to gru_decoder_bf16; only the output
-// footprint differs (batch*64 vs batch*640).
+// Diagnostic variant
+// Runs the full decoder but returns only the final hidden state
+// to isolate output-buffer and DMA cost
 extern "C" void gru_decoder_final_bf16(
     bfloat16 *h0_vec,
     bfloat16 *params,
@@ -179,7 +155,7 @@ extern "C" void gru_decoder_final_bf16(
             h[i] = h0_vec_b[i];
         }
 
-        // Same gi-hoisting as gru_decoder_bf16 -- see that function's comment.
+        // Same gi-hoisting as gru_decoder_bf16 
         alignas(aie::vector_decl_align) bfloat16 gi[H3];
         flair::matvec_bias(w_ih, h0_vec_b, b_ih, gi, H3, INPUT_DIM);
 
@@ -194,14 +170,9 @@ extern "C" void gru_decoder_final_bf16(
     }
 }
 
-// DIAGNOSTIC ONLY -- does virtually no compute. Same (h0, params,
-// hidden_seq) argument signature and buffer sizes as gru_decoder_bf16, and
-// the SAME ObjectFifo/acquire-release wiring (so params still gets DMA'd in,
-// same ack/release pattern), but calls NO gru_step at all. Purpose: if this
-// STILL shows the ~3300us/dispatch floor, the cost is not about on-core
-// compute at all -- it's structural to how THIS xclbin gets dispatched
-// (tile placement, buffer/DMA setup at compile time, etc.), independent of
-// what code runs on the core. Not used for scoring.
+// Diagnostic variant
+// Preserves the normal buffer flow without running GRU computation 
+// to measure fixed dispatch and data-movement overhead
 extern "C" void gru_decoder_noop_bf16(
     bfloat16 *h0_vec,
     bfloat16 *params,
@@ -228,14 +199,9 @@ extern "C" void gru_decoder_noop_bf16(
     }
 }
 
-// DIAGNOSTIC ONLY -- bisects noop vs unfused. Does the SAME w_hh @ h matvec
-// as gru_step_with_gi, every timestep, but skips the sigmoid/tanh
-// gate-combine loop entirely (just copies gh's first H elements into h --
-// garbage values, timing only). If this collapses toward the noop floor,
-// the gate-combine loop (specifically sigmoid16's scalar getInvBf16
-// reciprocal loop, ~12 calls/timestep) is the expensive part, not the
-// matvec. If it stays near unfused's ~3300us/dispatch, the matvec itself is
-// the culprit. Not used for scoring.
+// Diagnostic variant
+// Runs the recurrent matrix multiplication but skips the sigmoid,
+// tanh, and gate-combination calculations
 extern "C" void gru_decoder_matvec_only_bf16(
     bfloat16 *h0_vec,
     bfloat16 *params,
