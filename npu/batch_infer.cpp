@@ -1,32 +1,15 @@
-//===- batch_infer.cpp ------------------------------------*- C++ -*-===//
-//
-// Generic batched NPU host for a 2-input / 1-output FLAIR kernel (encoder or
-// decoder). Loads the xclbin + the shared params buffer ONCE, then streams N
-// windows through the kernel BATCH at a time (one host<->device dispatch
-// processes `batch` windows, via the kernel's own internal loop over BATCH -
-// see kernels/gru_encoder.cc / gru_decoder.cc), writing all outputs to one
-// file. This amortizes both the (expensive) xclbin load AND the per-dispatch
-// launch/sync overhead across the whole dataset, instead of paying dispatch
-// overhead per window like a batch=1 loop does.
-//
-// N must be a multiple of `batch` -- the caller (run_dataset_inference.py)
-// zero-pads the window count up to a multiple of batch and truncates the
-// output back down afterward.
-//
-// bf16 buffers are moved as raw uint16 bytes (no host-side interpretation);
-// the Python orchestrator (run_dataset_inference.py) does all float math.
-//
-// Usage:
-//   batch_infer.exe <xclbin> <insts> <in1_file> <in2_file> <out_file>
-//                   <N> <batch> <in1_vol> <in2_vol> <out_vol> [kernel_name]
-//     in1_file : N * in1_vol  bf16  (per-window input; e.g. x_window or h0)
-//     in2_file : in2_vol      bf16  (shared params, loaded once)
-//     out_file : N * out_vol  bf16  (per-window output; e.g. latent or hidden)
-//     in1_vol/out_vol are PER-WINDOW volumes; the device buffers are sized
-//     batch*in1_vol / batch*out_vol internally.
-//
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//===----------------------------------------------------------------------===//
+/*
+Authors: Daniel Eyraud, Mary-Claire Ridgeway
+
+Generic batched XRT host for FLAIR kernels with two inputs and one output.
+Loads the design and shared parameter buffer once, then processes N windows
+in groups of `batch`.
+
+N must be a multiple of `batch`. Input and output bf16 values are transferred
+as raw 16-bit words without host-side conversion.
+
+SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+*/
 
 #include "test_utils.h"
 
@@ -45,6 +28,7 @@
 
 using u16 = std::uint16_t; // bf16 storage (raw bits)
 
+// Load a binary bf16 buffer without interpreting its values on the host.
 static std::vector<u16> load_u16(const std::string &path) {
   std::ifstream f(path, std::ios::binary | std::ios::ate);
   if (!f)
@@ -67,9 +51,9 @@ int main(int argc, char **argv) {
   std::string in1_file = argv[3], in2_file = argv[4], out_file = argv[5];
   int N = std::stoi(argv[6]);
   int batch = std::stoi(argv[7]);
-  int in1_vol = std::stoi(argv[8]);  // per-window
-  int in2_vol = std::stoi(argv[9]);  // shared params, not batch-scaled
-  int out_vol = std::stoi(argv[10]); // per-window
+  int in1_vol = std::stoi(argv[8]);  // input bf16 elements per window
+  int in2_vol = std::stoi(argv[9]);  // shared parameter elements
+  int out_vol = std::stoi(argv[10]); // output bf16 elements per window
   std::string kernel_name = (argc > 11) ? argv[11] : "MLIR_AIE";
 
   if (batch <= 0 || N % batch != 0) {
@@ -81,8 +65,8 @@ int main(int argc, char **argv) {
   int batch_in1_vol = batch * in1_vol;
   int batch_out_vol = batch * out_vol;
 
-  std::vector<u16> in1 = load_u16(in1_file); // N * in1_vol
-  std::vector<u16> in2 = load_u16(in2_file); // in2_vol (shared params)
+  std::vector<u16> in1 = load_u16(in1_file); // N per-window inputs
+  std::vector<u16> in2 = load_u16(in2_file); // one shared parameter buffer
   if ((int)in1.size() < N * in1_vol || (int)in2.size() < in2_vol) {
     std::cerr << "input file smaller than expected (in1=" << in1.size()
               << " need " << (long)N * in1_vol << ", in2=" << in2.size()
@@ -97,10 +81,10 @@ int main(int argc, char **argv) {
   xrt::kernel kernel;
   test_utils::init_xrt_load_kernel(device, kernel, 0, xclbin, kernel_name);
 
-  // Buffers (group_ids match the 2-in/1-out kernel arg order used by
-  // xrt_test_wrapper: 1=instr, 3=in1, 4=in2, 5=out, 6=ctrlpkts, 7=trace).
-  // in1/out buffers are sized for a whole BATCH of windows -- one dispatch
-  // processes `batch` windows via the kernel's internal loop over BATCH.
+  // xrt_test_wrapper argument groups:
+  //   1 = instructions, 3 = input, 4 = parameters, 5 = output,
+  //   6 = control packets, 7 = trace.
+  // Input and output BOs hold one dispatch; parameters remain shared.
   auto bo_instr = xrt::bo(device, instr_v.size() * sizeof(int),
                           XCL_BO_FLAGS_CACHEABLE, kernel.group_id(1));
   auto bo_in1 = xrt::bo(device, batch_in1_vol * sizeof(u16),
@@ -112,7 +96,7 @@ int main(int argc, char **argv) {
   auto bo_ctrl = xrt::bo(device, 8, XRT_BO_FLAGS_HOST_ONLY, kernel.group_id(6));
   auto bo_trace = xrt::bo(device, 1, XRT_BO_FLAGS_HOST_ONLY, kernel.group_id(7));
 
-  // Instr + shared params loaded once.
+  // Instructions and shared parameters are transferred once before dispatch.
   memcpy(bo_instr.map<void *>(), instr_v.data(), instr_v.size() * sizeof(int));
   memcpy(bo_in2.map<void *>(), in2.data(), in2_vol * sizeof(u16));
   bo_instr.sync(XCL_BO_SYNC_BO_TO_DEVICE);
@@ -122,6 +106,8 @@ int main(int argc, char **argv) {
   u16 *map_out = bo_out.map<u16 *>();
   const unsigned opcode = 3;
 
+  // Measure dispatch processing, including host copies, DMA sync, launch,
+  // kernel completion, and output transfer.
   auto t0 = std::chrono::high_resolution_clock::now();
   for (int g = 0; g < G; g++) {
     memcpy(map_in1, &in1[(size_t)g * batch_in1_vol],
