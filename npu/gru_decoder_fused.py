@@ -1,19 +1,20 @@
 #
-# gru_decoder_fused.py
+# Authors: Daniel Eyraud, Mary-Claire Ridgeway
 #
-# IRON wrapper for npu/kernels/gru_decoder.cc's gru_decoder_fused_bf16 -- the
-# decoder GRU sequence PLUS the hidden_to_output linear layer, fused on-core.
+# Single-compute-tile IRON wrapper for the fused FLAIR decoder. The
+# gru_decoder_fused_bf16 kernel runs the full GRU sequence and applies the
+# hidden_to_output projection on-core, returning the reconstructed sequence.
 #
-# Runs:
-#   h0_vec + decoder GRU params + W_out/b_out -> recon (final reconstruction)
+# Buffers:
+#   h0_vec : (BATCH * HIDDEN_DIM) bf16 initial hidden states
+#   params : decoder GRU and output projection parameters
+#            [w_ih | w_hh | b_ih | b_hh | w_out | b_out], shared
+#   recon  : (BATCH * SEQ_LEN * OUTPUT_DIM) bf16 reconstructions
 #
-# Separate driver from gru_decoder.py (which returns the raw hidden_seq) so
-# the single-window live-demo/verify flow stays on the unfused kernel,
-# unaffected. This fused variant exists purely to shrink the decoder's
-# per-window output footprint (BATCH*SEQ_LEN*OUTPUT_DIM instead of
-# BATCH*SEQ_LEN*HIDDEN_DIM, ~3x smaller at OUTPUT_DIM=21), freeing L1 budget
-# for a larger BATCH in the dataset-scale inference pipeline
-# (run_dataset_inference.py).
+# Fusing the output projection reduces the returned sequence from HIDDEN_DIM
+# to OUTPUT_DIM values per timestep. This variant is retained for
+# dataset-scale comparison; the validated fused design was slower than the
+# unfused decoder.
 #
 
 import argparse
@@ -36,13 +37,14 @@ KERNEL_SRC = KERNELS_DIR / "gru_decoder.cc"
 HIDDEN_DIM = 64
 SEQ_LEN = 10
 OUTPUT_DIM = 21
-# Windows processed per kernel invocation. params (weights, now including
-# W_out/b_out) stay a single resident copy -- only h0_vec/recon scale with
-# BATCH. Default 1 for parity with the unfused driver's default.
+
+# Independent windows processed per kernel invocation. Parameters remain one
+# shared buffer; h0_vec and recon scale with BATCH.
 BATCH = 1
 
 
 def _make_decoder_kernel(arg_types, compile_flags):
+    """Build gru_decoder_fused_bf16 with the AIE runtime LUT implementation."""
     header_base = Path(config.cxx_header_path())
     runtime_dir = Path(config.root_path()) / "aie_runtime_lib" / "AIE2"
     lut_cpp = runtime_dir / "lut_based_ops.cpp"
@@ -88,10 +90,10 @@ def gru_decoder_fused(
         + output_dim * hidden_dim  # w_out
         + output_dim  # b_out
     )
-    # Shim DMA transfer length must be a multiple of 4 bytes; bf16 is 2
-    # bytes/element, so an odd element count (b_out=21 tips this odd) needs
-    # one trailing pad element. Host side pads dec_params to match (see
-    # run_dataset_inference.py).
+    
+    # Shim DMA lengths must be multiples of four bytes. Since bf16 occupies
+    # two bytes, append one trailing parameter element when the count is odd.
+    # The host pads the parameter buffer to the same length.
     if n_params % 2 != 0:
         n_params += 1
 
@@ -111,11 +113,13 @@ def gru_decoder_fused(
         ],
     )
 
+    # One ObjectFifo per kernel buffer: two inputs and one output.
     h0_fifo = ObjectFifo(h0_ty, depth=1, name="decoder_h0")
     params_fifo = ObjectFifo(params_ty, depth=1, name="decoder_params")
     recon_fifo = ObjectFifo(recon_ty, depth=1, name="decoder_recon")
 
     def core_fn(h0_c, params_c, recon_p, k):
+        # Hold one element from each FIFO for the duration of the kernel call.
         eh0 = h0_c.acquire(1)
         ep = params_c.acquire(1)
         erec = recon_p.acquire(1)
@@ -167,6 +171,7 @@ def _compile_kwargs(opts):
 
 
 def _run_and_verify(opts):
+    """Reject local execution; this design is run through the Windows host."""
     raise SystemExit(
         "This design is intended for the WSL compile-only + Windows host flow "
         "(batch_infer.exe). Direct NPU execution from Python isn't supported "
