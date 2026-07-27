@@ -1,17 +1,17 @@
 #
-# gru_encoder.py
+# Authors: Daniel Eyraud, Mary-Claire Ridgeway
 #
-# IRON driver for the fused FLAIR encoder kernel (npu/kernels/gru_encoder.cc):
-# a full SEQ_LEN-timestep GRU encode in ONE kernel invocation, weights
-# resident, hidden state carried on-core. Outputs the latent (last hidden).
+# Single-compute-tile IRON wrapper for the FLAIR encoder. The
+# gru_encoder_bf16 kernel runs the full GRU sequence in one invocation and
+# returns the final hidden state for each independent input window.
 #
-# Buffers: x_window (SEQ_LEN*INPUT_DIM) + params (encoder GRU weights) -> 2
-# inputs; latent (HIDDEN_DIM) -> 1 output. Fits the core's 2-in/2-out DMA
-# budget and 64 KB L1 (params 42624 B + small buffers).
+# Buffers:
+#   x_window : (BATCH * SEQ_LEN * INPUT_DIM) bf16 input windows
+#   params   : encoder GRU weights [w_ih | w_hh | b_ih | b_hh], shared
+#   latent   : (BATCH * HIDDEN_DIM) bf16 final hidden states
 #
-# Compile-only (WSL):
-#   python3 gru_encoder.py --dev npu --xclbin-path build/gru.xclbin \
-#           --insts-path build/insts.bin
+# INPUT_DIM includes zero-padding from 45 to 48 features so the input matvec
+# can use 16-lane vector operations.
 #
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 #
@@ -30,24 +30,18 @@ from aie.utils.hostruntime.cli import run_design_cli
 _KERNELS_DIR = Path(__file__).parent / "kernels"
 _KERNEL_SRC = _KERNELS_DIR / "gru_encoder.cc"
 
-# Dims from the trained checkpoint (encoder.gru.weight_ih_l0: (192, 45)).
-# INPUT_DIM is the PADDED input length: 45 real features rounded up to a
-# multiple of 16 (48) so the w_ih matvec vectorizes. gen_encoder_data.py
-# zero-pads the weights + inputs to match; the padded lanes contribute 0.
+# The trained encoder has 45 input features. gen_encoder_data.py pads inputs
+# and w_ih to 48 columns; the added lanes are zero and do not affect results.
 INPUT_DIM = 48
 HIDDEN_DIM = 64
 SEQ_LEN = 10  # preprocess.window_size in config.yaml
-# Windows processed per kernel invocation. params (weights) stay a single
-# copy, shared across the batch -- only x_window/latent scale with BATCH.
-# Default 1 = identical behavior to the original single-window design.
+# Independent windows processed per kernel invocation. Parameters remain one
+# shared buffer; x_window and latent scale with BATCH.
 BATCH = 1
 
 
 def _make_encoder_kernel(arg_types, compile_flags):
-    """Build the gru_encoder ExternalFunction with the include wiring the aie2
-    LUT kernels rely on, plus the kernels dir (so gru_encoder.cc can
-    #include "gru_common.h"). Compiles lut_based_ops.cpp into the same TU for
-    getExpBf16's tables. Mirrors gru_cell_encoder._make_gru_kernel."""
+    """Build gru_encoder_bf16 with the AIE runtime LUT implementation."""
     header_base = Path(config.cxx_header_path())
     runtime_dir = Path(config.root_path()) / "aie_runtime_lib" / "AIE2"
     lut_cpp = runtime_dir / "lut_based_ops.cpp"
@@ -100,11 +94,13 @@ def gru_encoder(
         ],
     )
 
+    # One ObjectFifo per kernel buffer: two inputs and one output.
     win_fifo = ObjectFifo(win_ty, depth=1, name="x_window")
     params_fifo = ObjectFifo(params_ty, depth=1, name="params")
     latent_fifo = ObjectFifo(h_ty, depth=1, name="latent")
 
     def core_fn(win_c, params_c, latent_p, k):
+        # Hold one element from each FIFO for the duration of the kernel call.
         ew = win_c.acquire(1)
         ep = params_c.acquire(1)
         el = latent_p.acquire(1)
@@ -149,6 +145,7 @@ def _compile_kwargs(opts):
 
 
 def _run_and_verify(opts):
+    """Reject local execution; this design is run through the Windows host."""
     raise SystemExit(
         "This design is intended for the WSL compile-only + Windows host flow "
         "(make run). Direct NPU execution from Python isn't supported here "
