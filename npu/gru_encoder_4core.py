@@ -1,29 +1,21 @@
 #
-# gru_encoder_4core.py
+# Authors: Daniel Eyraud, Mary-Claire Ridgeway
 #
-# 4-core DATA-PARALLEL FLAIR encoder in one NPU column. Same kernel
-# (gru_encoder_bf16) as the single-core gru_encoder.py, but replicated across
-# 4 compute tiles that each process an INDEPENDENT slice of the window batch.
-# Windows are independent (the GRU recurrence is sequential only WITHIN a
-# window), so this is pure data parallelism -> ~4x throughput.
+# Four-core data-parallel IRON wrapper for the FLAIR encoder. Each compute
+# tile runs gru_encoder_bf16 on an independent batch slice; the memtile
+# scatters input windows, broadcasts shared parameters, and gathers latents.
 #
-# Column data flow (memtile = L2 does all scatter/gather/broadcast):
-#     shim --x_windows--> memtile --split--> 4 cores        (scatter windows)
-#     shim --params-----> memtile --forward/bcast--> 4 cores (shared weights)
-#     4 cores --latents--> memtile --join--> shim           (gather outputs)
+# Buffers:
+#   x_windows : (4 * BATCH * SEQ_LEN * INPUT_DIM) bf16 input windows
+#   params    : encoder GRU weights [w_ih | w_hh | b_ih | b_hh], shared
+#   latents   : (4 * BATCH * HIDDEN_DIM) bf16 final hidden states
 #
-# `batch` here is windows PER CORE per dispatch; one dispatch processes
-# 4*batch windows total. The host (batch_infer.exe) just provides one
-# contiguous 4*batch-window input buffer and reads one 4*batch-window output
-# buffer -- the memtile split/join handle the per-core distribution, so no
-# host-side changes are needed vs the single-core flow (only the volumes
-# change: in1_vol = 4*batch*SEQ*INPUT_DIM, out_vol = 4*batch*HIDDEN).
-#
-# Patterns mirror mlir-aie programming_examples: reduce_max memtile
-# (split/join) and matmul whole_array (forward + multi-.cons broadcast).
+# BATCH is windows per compute tile, so one dispatch processes 4 * BATCH
+# independent windows.
 #
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 #
+
 import argparse
 from pathlib import Path
 
@@ -47,6 +39,7 @@ N_CORES = 4
 
 
 def _make_encoder_kernel(arg_types, compile_flags):
+    """Build gru_encoder_bf16 with the AIE runtime LUT implementation."""
     header_base = Path(config.cxx_header_path())
     runtime_dir = Path(config.root_path()) / "aie_runtime_lib" / "AIE2"
     lut_cpp = runtime_dir / "lut_based_ops.cpp"
@@ -80,22 +73,28 @@ def gru_encoder_4core(
     batch: CompileTime[int] = BATCH,
 ):
     h3 = 3 * hidden_dim
+    
+    # params layout:
+    #   w_ih (H3*INPUT_DIM) | w_hh (H3*H) | b_ih (H3) | b_hh (H3)
     n_params = h3 * input_dim + h3 * hidden_dim + h3 + h3
-
+    
+    # The host transfers one contiguous input and output buffer. The memtile
+    # splits and joins fixed-size slices for the four compute tiles.
     per_core_win = batch * seq_len * input_dim   # x_window for one core's batch
     per_core_lat = batch * hidden_dim            # latent for one core's batch
     total_win = N_CORES * per_core_win
     total_lat = N_CORES * per_core_lat
 
     dtype = np.dtype[bfloat16]
+    
+    # Host-visible types span all tiles; core types describe one tile's slice.
     x_all_ty = np.ndarray[(total_win,), dtype]        # shim<->memtile (all cores)
     x_core_ty = np.ndarray[(per_core_win,), dtype]    # memtile->one core
     params_ty = np.ndarray[(n_params,), dtype]
     lat_all_ty = np.ndarray[(total_lat,), dtype]      # memtile<->shim (all cores)
     lat_core_ty = np.ndarray[(per_core_lat,), dtype]  # one core->memtile
 
-    # The kernel each core runs is the UNCHANGED single-core encoder, sized to
-    # `batch` windows per core.
+    # Every tile runs the same encoder kernel, compiled for batch windows.
     kernel = _make_encoder_kernel(
         arg_types=[x_core_ty, params_ty, lat_core_ty],
         compile_flags=[
@@ -106,7 +105,7 @@ def gru_encoder_4core(
         ],
     )
 
-    # --- x_windows: shim -> memtile -> split to N cores (scatter) ---
+    # Scatter contiguous window slices from the shim through the memtile.
     x_fifo = ObjectFifo(x_all_ty, name="x_windows")
     x_offsets = [per_core_win * i for i in range(N_CORES)]
     x_core_fifos = x_fifo.cons().split(
@@ -115,17 +114,16 @@ def gru_encoder_4core(
         names=[f"x_core{i}" for i in range(N_CORES)],
     )
 
-    # --- params: shim -> memtile -> broadcast to all N cores (shared) ---
-    # depth=1 is MANDATORY: params is 43776 B, and the default depth-2
-    # ping-pong would put TWO copies (87 KB) in every core's 64 KB L1 ->
-    # overflow. Weights are resident/read-only (loaded once, reused across the
-    # whole batch), so there's no prefetch benefit to double-buffering anyway.
+    # Broadcast one parameter buffer to all four tiles. At the default
+    # dimensions, params occupies 43,776 bytes; depth 2 would allocate two
+    # copies in each tile's 64 KB L1. The weights are read-only and reused
+    # across the tile batch, so double-buffering provides no prefetch benefit.
     params_fifo = ObjectFifo(params_ty, depth=1, name="params")
     params_bcast = params_fifo.cons().forward(
         obj_type=params_ty, depth=1, name="params_bcast"
     )
 
-    # --- latents: N cores -> memtile -> join -> shim (gather) ---
+    # Gather one latent slice from each tile into the host-visible output.
     lat_fifo = ObjectFifo(lat_all_ty, name="latents")
     lat_offsets = [per_core_lat * i for i in range(N_CORES)]
     lat_core_fifos = lat_fifo.prod().join(
@@ -135,6 +133,7 @@ def gru_encoder_4core(
     )
 
     def core_fn(x_c, params_c, lat_p, k):
+        # Hold one element from each FIFO for the duration of the kernel call.
         ew = x_c.acquire(1)
         ep = params_c.acquire(1)
         el = lat_p.acquire(1)
@@ -188,6 +187,7 @@ def _compile_kwargs(opts):
 
 
 def _run_and_verify(opts):
+    """Reject local execution; this design is run through the Windows host."""
     raise SystemExit(
         "Compile-only design (WSL). Run via batch_infer.exe on Windows."
     )
