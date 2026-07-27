@@ -1,11 +1,14 @@
 #
-# gru_decoder.py
+# Authors: Mary-Claire Ridgeway, Daniel Eyraud
 #
-# IRON wrapper for npu/kernels/gru_decoder.cc
+# Single-compute-tile IRON wrapper for the unfused FLAIR decoder GRU.
+# Compiles gru_decoder_bf16 from kernels/gru_decoder.cc and supports local
+# execution against a generated golden hidden sequence.
 #
-# Runs:
-#   h0_vec + decoder GRU params -> hidden_seq
-#
+# Buffers:
+#   h0_vec     : (BATCH * HIDDEN_DIM) bf16 initial hidden states
+#   params     : decoder GRU weights [w_ih | w_hh | b_ih | b_hh], shared
+#   hidden_seq : (BATCH * SEQ_LEN * HIDDEN_DIM) bf16 hidden states
 
 import argparse
 from pathlib import Path
@@ -26,9 +29,8 @@ KERNEL_SRC = KERNELS_DIR / "gru_decoder.cc"
 
 HIDDEN_DIM = 64
 SEQ_LEN = 10
-# Windows processed per kernel invocation. params (weights) stay a single
-# copy, shared across the batch -- only h0_vec/hidden_seq scale with BATCH.
-# Default 1 = identical behavior to the original single-window design.
+# Number of independent windows processed per kernel invocation. Parameters
+# remain one shared buffer; h0_vec and hidden_seq scale with BATCH.
 BATCH = 1
 
 
@@ -67,7 +69,10 @@ def gru_decoder(
 ):
     h3 = 3 * hidden_dim
 
-    # decoder GRU input_dim = hidden_dim, because x_t = h0_vec
+    # params layout:
+    #   w_ih (H3*H) | w_hh (H3*H) | b_ih (H3) | b_hh (H3)
+    # The decoder input dimension is H because the initial hidden vector is
+    # reused as x_t at every timestep.
     n_params = h3 * hidden_dim + h3 * hidden_dim + h3 + h3
 
     dtype = np.dtype[bfloat16]
@@ -84,12 +89,14 @@ def gru_decoder(
             f"-DBATCH={batch}",
         ],
     )
-
+    
+    # One ObjectFifo per kernel buffer: two inputs and one output.
     h0_fifo = ObjectFifo(h0_ty, depth=1, name="decoder_h0")
     params_fifo = ObjectFifo(params_ty, depth=1, name="decoder_params")
     hidden_fifo = ObjectFifo(hidden_seq_ty, depth=1, name="decoder_hidden_seq")
 
     def core_fn(h0_c, params_c, hidden_p, k):
+        # Hold one element from each FIFO for the duration of the kernel call.
         eh0 = h0_c.acquire(1)
         ep = params_c.acquire(1)
         ehid = hidden_p.acquire(1)
@@ -121,6 +128,7 @@ def gru_decoder(
 
 
 def _load_decoder_test_data():
+    """Load generated decoder inputs and the float32 golden hidden sequence."""
     h0 = np.fromfile(NPU_DIR / "decoder_h0.bin", dtype=bfloat16)
     params = np.fromfile(NPU_DIR / "decoder_gru_params.bin", dtype=bfloat16)
     golden = np.fromfile(NPU_DIR / "decoder_hidden_golden.bin", dtype=np.float32)
@@ -147,6 +155,7 @@ def _compile_kwargs(opts):
 
 
 def _run_and_verify(opts):
+    """Run the decoder and compare its hidden sequence with the golden result."""
     h0, params, golden = _load_decoder_test_data()
 
     h0_t = iron.tensor(h0, dtype=bfloat16, device="npu")
