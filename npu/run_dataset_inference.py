@@ -1,27 +1,20 @@
 #!/usr/bin/env python3
 """
+Authors: Daniel Eyraud, Mary-Claire Ridgeway
 run_dataset_inference.py
 
+The script prepares traffic windows on the CPU, runs the GRU encoder and
+decoder as batched NPU passes, computes reconstruction-based anomaly scores,
+and compares the NPU results with the PyTorch reference model.
 
-Runs the full FLAIR autoencoder over an entire dataset on the NPU and compares
-the resulting anomaly scores + detection metrics against the PyTorch baseline.
-
-
-Pipeline (two batched NPU passes with numpy glue in between):
-  1. host : embeddings + pad -> all_x_windows.bin           (N x SEQ*48 bf16)
-  2. NPU  : batch_infer.exe (encoder xclbin, loaded once)   -> all_latents.bin
-  3. host : latent -> h0 = tanh(latent_to_hidden(latent))   -> all_h0.bin
-  4. NPU  : batch_infer.exe (decoder xclbin, loaded once)
-           unfused -> all_hidden.bin, then host hidden_to_output
-           fused   -> all_recon.bin directly
-  5. host : reconstruction -> MSE -> NPU anomaly scores
-  6. host : PyTorch scores + threshold -> F1 / ROC-AUC for both, compared
-
+Decoder modes:
+  unfused: the NPU returns decoder hidden states; the CPU applies the final
+           hidden-to-output projection.
+  fused:   the NPU performs both decoding and the final output projection.
 
 Requires: the WSL IRON env sourced (incl. XRT setup.sh so xclbinutil is on
 PATH), and the NPU visible to the Windows-side .exe. On native Windows set
 XRT paths for the host build via --xrt-inc-dir / --xrt-lib-dir.
-
 
 Usage (from npu/):
     python3 run_dataset_inference.py --limit 990        # full sample dataset
@@ -63,8 +56,9 @@ _CKPT = _REPO / "experiments" / "results" / "flair_minimal.pt"
 
 
 
-
+#RUn
 def sh(cmd: list[str], **kw) -> None:
+    """Run a command from the NPU directory and fail on a nonzero exit code"""
     print("$ " + " ".join(cmd))
     subprocess.run(cmd, cwd=_HERE, check=True, **kw)
 
@@ -72,7 +66,7 @@ def sh(cmd: list[str], **kw) -> None:
 
 
 def sh_capture(cmd: list[str], **kw) -> str:
-    """Like sh(), but also returns captured stdout (still echoed live-ish after the call)."""
+    """Run a command, echo its output, and return the captured standard output"""
     print("$ " + " ".join(cmd))
     result = subprocess.run(cmd, cwd=_HERE, check=True, capture_output=True, text=True, **kw)
     print(result.stdout, end="")
@@ -84,6 +78,7 @@ def sh_capture(cmd: list[str], **kw) -> str:
 
 
 def parse_us_per_window(stdout: str) -> float | None:
+    """Extract the reported microsecond per window value from host output"""
     m = re.search(r"([\d.]+)\s*us/window", stdout)
     return float(m.group(1)) if m else None
 
@@ -94,9 +89,9 @@ def cpu_single_window_latency(
     model, X_num: np.ndarray, X_cat: np.ndarray, *,
     threads: int, use_torchscript: bool, warmup: int, iters: int,
 ) -> float:
-    """Fair single-window (batch=1) CPU latency in us/window, cycling through
-    real dataset windows. Mirrors scripts/benchmark_inference.py's methodology
-    so this is comparable to the previously-established CPU baseline."""
+    """Measure batch-one CPU latency while cycling through real traffic windows
+    
+    This follows the method in scripts/benchark_inference.py"""
     import torch
     from scripts.benchmark_inference import AnomalyScoreWrapper
 
@@ -143,12 +138,14 @@ def cpu_single_window_latency(
 
 
 def sigmoid(x):
+    """Compute the logistic sigmoid used by the float GRU reference step"""
     return 1.0 / (1.0 + np.exp(-x))
 
 
 
 
 def gru_step_float(x, h, w_ih, w_hh, b_ih, b_hh):
+    """Run one float GRU timestep using PyTorch's reset/update/new gate order"""
     H = h.shape[0]
     gi = w_ih @ x + b_ih
     gh = w_hh @ h + b_hh
@@ -161,7 +158,7 @@ def gru_step_float(x, h, w_ih, w_hh, b_ih, b_hh):
 
 
 def f1_at_percentile(scores, labels, pct=99.0):
-    """Threshold = percentile of NORMAL scores; return (f1, threshold)."""
+    """Calibrate on normal scores and return the resulting F1 and threshold"""
     thr = float(np.percentile(scores[labels == 0], pct))
     pred = (scores > thr).astype(np.int64)
     tp = int(((labels == 1) & (pred == 1)).sum())
@@ -176,11 +173,10 @@ def f1_at_percentile(scores, labels, pct=99.0):
 
 
 def detection_metrics(scores, labels, pct=99.0):
-    """Full per-path detection breakdown at a NORMAL-only pth-percentile
-    threshold. Each path (NPU vs PyTorch) is calibrated on its OWN score
-    distribution -- NPU bf16/LUT scores are on a slightly different scale than
-    PyTorch fp32, so a shared/absolute threshold is misleading; the calibrated
-    detection metrics are what should be compared. Returns a dict."""
+    """Compute detection metrics at a threshold calibrated from normal scores
+    
+    NPU BF16/LUT scores and PyTorch FP32 scores have different numeric scales
+    so each path is calibrated on its own normal-score distribution"""
     thr = float(np.percentile(scores[labels == 0], pct))
     pred = (scores > thr).astype(np.int64)
     tp = int(((labels == 1) & (pred == 1)).sum())
@@ -198,6 +194,7 @@ def detection_metrics(scores, labels, pct=99.0):
 
 
 def roc_auc(scores, labels):
+    """Compute ROC-AUC by integrating the descending-score ROC curve"""
     order = np.argsort(-scores)
     y = labels[order]
     P = int((y == 1).sum())
@@ -214,6 +211,7 @@ def roc_auc(scores, labels):
 
 
 def main() -> None:
+    """Run the complete NPU inference, validation, and timing workflow"""
     import torch
     from src.models.flair_model import FLAIRAutoencoder, FLAIRConfig
 
@@ -338,11 +336,9 @@ def main() -> None:
     print(f"Dataset: {N} windows, {int(y.sum())} anomalies, T={T}")
 
 
-    # NPU kernels process B_enc/B_dec windows per dispatch (see --batch-*);
-    # pad the window count up to a multiple of BOTH (their LCM) so the same
-    # padded window set is a whole number of dispatches for both passes. The
-    # extra rows are all-zero inputs; their outputs are discarded before
-    # scoring, below.
+    # Pad to a common multiple of the encoder and decoder batch sizes so both 
+    # NPU passes receive only complete dispatches. Added zero windows are removed
+    # before anomaly scoring
     N_pad = ((N + B_lcm - 1) // B_lcm) * B_lcm
     if N_pad != N:
         print(f"Padding {N} -> {N_pad} windows to fill batch-encoder={B_enc} "
@@ -350,7 +346,7 @@ def main() -> None:
               f"(extra {N_pad - N} rows discarded before scoring)")
 
 
-    # --- 1. Encoder inputs: embeddings + pad to 48 per timestep ---
+    # Stage 1. build embedded encoder inputs and pad each timestep to 48 values
     sport_w = sd["sport_emb.weight"].numpy()
     dport_w = sd["dport_emb.weight"].numpy()
     proto_w = sd["proto_emb.weight"].numpy()
@@ -367,7 +363,7 @@ def main() -> None:
     (_HERE / "all_x_windows.bin").write_bytes(x_windows.reshape(N_pad, -1).tobytes())
 
 
-    # Encoder params (padded w_ih), matching tests/gen_encoder_data.py.
+    # Pack encoder parameters in the layout expected by the NPU kernel
     w_ih_e = sd["encoder.gru.weight_ih_l0"].numpy().astype(bfloat16)
     w_hh_e = sd["encoder.gru.weight_hh_l0"].numpy().astype(bfloat16)
     b_ih_e = sd["encoder.gru.bias_ih_l0"].numpy().astype(bfloat16)
@@ -382,15 +378,11 @@ def main() -> None:
     enc_in1_vol = T * INPUT_DIM_PADDED
 
 
-    # Decoder params.
+    # Pack decoder parameters for the selected execution mode
     #
-    # unfused mode:
-    #   NPU outputs decoder hidden sequence (T * HIDDEN_DIM = 640 values/window)
-    #   host applies hidden_to_output -> reconstruction.
-    #
-    # fused mode:
-    #   NPU applies decoder GRU + hidden_to_output and outputs reconstruction
-    #   directly (T * OUTPUT_DIM = 210 values/window).
+    # Unfused: NPU returns T * HIDDEN_DIM hidden values per window;
+    # the CPU applies hidden_to_output
+    # Fused: NPU returns T * OUTPUT_DIM reconstructed values per window
     w_ih_d = sd["decoder.gru.weight_ih_l0"].numpy().astype(bfloat16)
     w_hh_d = sd["decoder.gru.weight_hh_l0"].numpy().astype(bfloat16)
     b_ih_d = sd["decoder.gru.bias_ih_l0"].numpy().astype(bfloat16)
@@ -407,8 +399,8 @@ def main() -> None:
             W_out_bf16.reshape(-1),
             b_out_bf16,
         ]).astype(bfloat16)
-        # Keep the input-2 buffer length even/aligned for the NPU path. The
-        # fused kernel ignores this optional final padding value.
+        # Keep the fused parameter buffer even/aligned for the NPU alignemnet 
+        # The fused kernel ignores this optional final padding value
         if dec_params.size % 2:
             dec_params = np.concatenate([dec_params, np.zeros(1, dtype=bfloat16)])
 
@@ -430,20 +422,16 @@ def main() -> None:
     n_dec_params = dec_params.size
 
 
-    # --- Build xclbins + batch host (once) ---
+    # Build the selected NPU configurations and the shared batch host program
     xf = []
     if args.xrt_inc_dir:
         xf.append(f"XRT_INC_DIR={args.xrt_inc_dir}")
     if args.xrt_lib_dir:
         xf.append(f"XRT_LIB_DIR={args.xrt_lib_dir}")
     if not args.skip_build:
-        # ALWAYS delete .prj dirs before rebuilding. IRON/aiecc's own
-        # ExternalFunction build cache does not reliably invalidate on
-        # changes to included headers like gru_common.h (source_string is
-        # just two fixed #include lines, unaffected by what's inside them --
-        # see flair-npu-iron-kernel-gotchas memory item 10). Without this, a
-        # kernel edit can silently test stale, unchanged compiled code.
-        # Remove the actual selected batch-specific projects.
+        # Remove cached project directories before rebuilding. IRON/aiecc may
+        # not detect changes made only inside included kernel headers, which 
+        # can otherwise leave stale compiled kernels in the test run
         shutil.rmtree(_HERE / "build" / encoder_project, ignore_errors=True)
         shutil.rmtree(_HERE / "build" / decoder_project, ignore_errors=True)
 
@@ -479,7 +467,7 @@ def main() -> None:
     ps = "powershell.exe"
 
 
-    # --- 2. NPU encoder pass ---
+    # Stage 2: runt he batched NPU encoder
     print("\n[encoder] batched NPU pass")
     enc_stdout = sh_capture([ps, "./batch_infer.exe", encoder_xclbin, encoder_insts,
         "all_x_windows.bin", "enc_params.bin", "all_latents.bin",
@@ -487,7 +475,7 @@ def main() -> None:
     enc_us_per_window = parse_us_per_window(enc_stdout)
 
 
-    # --- 3. latent -> h0 (host) ---
+    # Stage 3: transform encoder latents into decoder initial hidden states
     latents = np.frombuffer((_HERE / "all_latents.bin").read_bytes(),
                             dtype=bfloat16).reshape(N_pad, HIDDEN_DIM).astype(np.float32)
     W_lh = sd["decoder.latent_to_hidden.weight"].numpy().astype(np.float32)
@@ -496,7 +484,7 @@ def main() -> None:
     (_HERE / "all_h0.bin").write_bytes(h0.tobytes())
 
 
-    # --- 4. NPU decoder pass ---
+    # Stage 4: run the batched NPU decoder
     print(f"\n[decoder] batched NPU pass ({decoder_mode})")
     dec_stdout = sh_capture([ps, "./batch_infer.exe", decoder_xclbin,
         decoder_insts, "all_h0.bin", dec_params_file,
@@ -505,8 +493,8 @@ def main() -> None:
     dec_us_per_window = parse_us_per_window(dec_stdout)
 
 
-    # --- 5. recon -> NPU MSE scores ---
-    # Discard the N_pad-N padding rows before scoring.
+    # Stage 5: reconstruct numeric features and compute NPU MSE scores
+    # Discard padded windows before scoring
     if decoder_mode == "fused":
         recon = np.frombuffer((_HERE / "all_recon.bin").read_bytes(),
                               dtype=bfloat16).reshape(N_pad, T, OUTPUT_DIM).astype(np.float32)[:N]
@@ -519,7 +507,7 @@ def main() -> None:
     npu_scores = np.mean((recon - X_num[:, :T]) ** 2, axis=(1, 2))
 
 
-    # --- 6. PyTorch scores + metrics ---
+    # Stage 6: compute PyTorch reference scores and compare detection metrics
     with torch.no_grad():
         pt_scores = model.anomaly_score(
             torch.from_numpy(X_num), torch.from_numpy(X_cat)
@@ -562,7 +550,7 @@ def main() -> None:
     print("=" * 64)
 
 
-    # Save per-window scores for plotting / the poster.
+    # Save generated per-window scores for plotting and later analysis
     out_csv = _HERE / "npu_vs_pytorch_scores.csv"
     with open(out_csv, "w") as f:
         f.write("window,label,npu_score,pytorch_score\n")
@@ -571,7 +559,7 @@ def main() -> None:
     print(f"per-window scores -> {out_csv}")
 
 
-    # --- 7. NPU vs CPU speed comparison ---
+    # Stage 7: compare measured NPU latency with batch-one CPU baselines
     if not args.skip_cpu_baseline:
         import torch
 
