@@ -1,14 +1,10 @@
-# gru_decoder_4core.py
-#
-# Four-core data-parallel FLAIR unfused decoder.
-#
-# Each compute tile runs gru_decoder_bf16 on an independent subset:
-#
-#   shim --h0-------> memtile --split------> 4 compute tiles
-#   shim --params---> memtile --broadcast--> 4 compute tiles
-#   4 tiles --hidden-> memtile --join-------> shim
-#
-# `batch` is windows PER CORE. One dispatch processes 4 * batch windows.
+# Authors: Mary-Claire Ridgeway, Daniel Eyraud
+
+# Four-compute-tile IRON design for FLAIR's unfused GRU decoder.
+# Each tile processes and independent part of the batch.
+# Initial hidden states are split across tiles, paprameters are
+# shared, and outputs are joined.
+# 'batch' is windows per tile, so one dispatch handles 4 * batch windows.
 
 import argparse
 from pathlib import Path
@@ -39,12 +35,13 @@ KERNEL_SRC = KERNELS_DIR / "gru_decoder.cc"
 HIDDEN_DIM = 64
 SEQ_LEN = 10
 
-# Windows per compute tile per dispatch.
+# Number of windows assigned to each compute tile per dispatch
 BATCH = 1
 N_CORES = 4
 
 
 def _make_decoder_kernel(arg_types, compile_flags):
+    """Create the external AIE function for the unfused GRU decoder kernel"""
     header_base = Path(config.cxx_header_path())
     runtime_dir = Path(config.root_path()) / "aie_runtime_lib" / "AIE2"
     lut_cpp = runtime_dir / "lut_based_ops.cpp"
@@ -66,7 +63,7 @@ def _make_decoder_kernel(arg_types, compile_flags):
         compile_flags=compile_flags,
     )
 
-
+# Build the four-tile data-parallel decoder and its runtime data movement
 @iron.jit
 def gru_decoder_4core(
     h0_vec: In,
@@ -79,12 +76,7 @@ def gru_decoder_4core(
 ):
     h3 = 3 * hidden_dim
 
-    # Packed unfused decoder parameters:
-    #
-    #   w_ih | w_hh | b_ih | b_hh
-    #
-    # For H=64:
-    #   192*64 + 192*64 + 192 + 192 = 24,960 bf16
+    # Packed unfused decoder parameters:  w_ih | w_hh | b_ih | b_hh
     n_params = (
         h3 * hidden_dim
         + h3 * hidden_dim
@@ -100,15 +92,15 @@ def gru_decoder_4core(
 
     dtype = np.dtype[bfloat16]
 
-    # Aggregate memory-tile buffers.
+    # Host-visible buffers covering the full four-tile batch
     h0_all_ty = np.ndarray[(total_h0,), dtype]
     hidden_all_ty = np.ndarray[(total_hidden,), dtype]
 
-    # Per-compute-tile buffers.
+    # Buffers handled by each individual compute tile
     h0_core_ty = np.ndarray[(per_core_h0,), dtype]
     hidden_core_ty = np.ndarray[(per_core_hidden,), dtype]
 
-    # Shared parameter buffer.
+    # Decoder parameters shared by all four compute tiles
     params_ty = np.ndarray[(n_params,), dtype]
 
     kernel = _make_decoder_kernel(
@@ -120,7 +112,7 @@ def gru_decoder_4core(
         ],
     )
 
-    # h0: shim -> memory tile -> four compute-tile slices.
+    # Split the initial hiddens tates into  one slice per compute tile
     h0_fifo = ObjectFifo(
         h0_all_ty,
         name="decoder_h0",
@@ -140,10 +132,8 @@ def gru_decoder_4core(
         ],
     )
 
-    # Parameters: shim -> memory tile -> broadcast to all compute tiles.
-    #
-    # Depth one avoids duplicating the approximately 50 KB parameter buffer
-    # inside each compute tile's local memory.
+    # Broadcast one parameter buffer to all compute tiles
+    # Depth one avoids storing an extra copy in each tile's local memory
     params_fifo = ObjectFifo(
         params_ty,
         depth=1,
@@ -156,7 +146,7 @@ def gru_decoder_4core(
         name="decoder_params_bcast",
     )
 
-    # Hidden sequences: four compute tiles -> memory tile -> shim.
+    # Join the four output slices into one host-visible hidden sequence 
     hidden_fifo = ObjectFifo(
         hidden_all_ty,
         name="decoder_hidden_seq",
@@ -176,6 +166,7 @@ def gru_decoder_4core(
         ],
     )
 
+    # Each worker runs the same decoder kernel on its own batch slice 
     def core_fn(
         h0_consumer,
         params_consumer,
@@ -213,6 +204,7 @@ def gru_decoder_4core(
 
     runtime = Runtime()
 
+    # Move inputs from the host, start all workers, and return joined outputs
     with runtime.sequence(
         h0_all_ty,
         params_ty,
@@ -239,6 +231,7 @@ def gru_decoder_4core(
 
 
 def _make_argparser():
+    """Create command-line options for compiling the four-tile decoder"""
     parser = argparse.ArgumentParser(
         prog="FLAIR unfused decoder, four-core data-parallel"
     )
@@ -269,6 +262,7 @@ def _make_argparser():
 
 
 def _compile_kwargs(options):
+    """Return model dimensions passed to the compiled IRON design"""
     return {
         "hidden_dim": options.hidden_dim,
         "seq_len": options.seq_len,
@@ -277,6 +271,7 @@ def _compile_kwargs(options):
 
 
 def _run_and_verify(options):
+    """Prevent local execution because the generated design runs on Windows"""
     raise SystemExit(
         "Compile-only design under WSL. Run the generated xclbin "
         "with batch_infer.exe on Windows."
@@ -284,6 +279,7 @@ def _run_and_verify(options):
 
 
 def main():
+    """Parse arguments and compile the four-tile decoder design"""
     options = _make_argparser().parse_args()
 
     run_design_cli(
