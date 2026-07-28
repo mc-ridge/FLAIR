@@ -1,3 +1,13 @@
+#
+# Authors: Daniel Eyraud, Mary-Claire Ridgeway
+#
+# Builds the decoder AIE design and instruction stream in WSL, the Windows
+# XRT host executable, and the generated input and golden-result buffers.
+# The unfused decoder returns the hidden sequence; reconstruction and anomaly
+# scoring remain host-side.
+#
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
 srcdir := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 include ${srcdir}/../../makefile-common
@@ -12,6 +22,7 @@ N_PARAMS ?= 24960
 WINDOW_INDEX ?= 0
 BATCH ?= 1  # windows per kernel invocation; params stay a single shared copy
 
+# Forward optional XRT installation paths to the Windows host build.
 XRT_FLAGS =
 ifdef XRT_INC_DIR
 XRT_FLAGS += -DXRT_INC_DIR=`${getwslpath} ${XRT_INC_DIR}`
@@ -26,12 +37,17 @@ insts_target = build/decoder_insts.bin
 .PHONY: all
 all: ${xclbin_target} ${insts_target} data
 
+# Compile the IRON design into the xclbin and instruction stream.
 $(eval $(call jit_xclbin,${xclbin_target},${insts_target},${aie_py_src},--dev ${devicename} --hidden-dim ${HIDDEN_DIM} --seq-len ${SEQ_LEN} --batch ${BATCH}))
 
+# jit_xclbin tracks the Python wrapper by default; list the included C++
+# sources so decoder-kernel or shared-GRU changes also rebuild the design.
 ${xclbin_target} ${insts_target}: ${srcdir}/kernels/gru_decoder.cc ${srcdir}/kernels/gru_common.h
 
+# Build the fixed-size Windows XRT host for the decoder configuration.
 $(eval $(call build_host_exe,${targetname},_build,tests/test_decoder.cpp,${XRT_FLAGS} -DNPU_MODE=decoder -DINPUT_DIM=${HIDDEN_DIM} -DHIDDEN_DIM=${HIDDEN_DIM} -DSEQ_LEN=${SEQ_LEN} -DN_PARAMS=${N_PARAMS}))
 
+# Generate the selected decoder input, packed parameters, and golden outputs.
 .PHONY: data
 data:
 	python3 ${srcdir}/tests/gen_decoder_data.py --seq-len ${SEQ_LEN} --window-index ${WINDOW_INDEX}
@@ -40,8 +56,8 @@ data:
 run: ${targetname}.exe ${xclbin_target} ${insts_target} data
 	${powershell} ./$< -x ${xclbin_target} -i ${insts_target} -k MLIR_AIE -v 1
 
-# End-to-end anomaly score: run hidden_to_output + MSE on the NPU hidden_seq
-# (dumped by test_decoder.cpp) and compare to the PyTorch-precision reference.
+# Apply hidden_to_output and MSE to the NPU hidden sequence, then compare the
+# resulting anomaly score with the PyTorch-precision reference.
 .PHONY: score
 score:
 	python3 ${srcdir}/tests/compare_anomaly_score.py --seq-len ${SEQ_LEN} --window-index ${WINDOW_INDEX}
