@@ -1,4 +1,6 @@
-##===- Makefile.batch — build the generic batched NPU host ---------------===##
+
+#
+# Authors: Daniel Eyraud, Mary-Claire Ridgeway
 #
 # Builds batch_infer.exe (loads an xclbin once, streams N windows through it).
 # The xclbins themselves come from Makefile.encoder / Makefile.decoder; this
@@ -8,7 +10,7 @@
 #   make -f Makefile.batch clean
 #
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-##===----------------------------------------------------------------------===##
+
 
 srcdir := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
@@ -16,6 +18,7 @@ include ${srcdir}/../../makefile-common
 
 targetname = batch_infer
 
+# Forward optional XRT installation paths to the CMake host build.
 XRT_FLAGS =
 ifdef XRT_INC_DIR
 XRT_FLAGS += -DXRT_INC_DIR=`${getwslpath} ${XRT_INC_DIR}`
@@ -27,6 +30,7 @@ endif
 .PHONY: all
 all: ${targetname}.exe
 
+# batch_infer.cpp selects the runtime-sized host configuration.
 $(eval $(call build_host_exe,${targetname},_build,batch_infer.cpp,${XRT_FLAGS} -DNPU_MODE=batch))
 
 .PHONY: clean
