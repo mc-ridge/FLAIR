@@ -1,7 +1,14 @@
+# Authors: Daniel Eyraud, Mary-Claire Ridgeway
+#
+# Builds the fixed-size encoder or decoder test host, or the generic batched
+# inference host. Fixed-size modes derive bf16 buffer sizes from the cached
+# model dimensions; batch mode receives its transfer volumes at runtime.
+
 cmake_minimum_required(VERSION 3.30)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
+# Model dimensions and packed parameter count used by the fixed-size hosts.
 set(INPUT_DIM 45 CACHE STRING "GRU input dim")
 set(HIDDEN_DIM 64 CACHE STRING "GRU hidden dim")
 set(SEQ_LEN 10 CACHE STRING "sequence length")
@@ -35,6 +42,7 @@ include(../../common.cmake)
 
 add_executable(${currentTarget} ${HOST_SRC})
 
+# Fixed-size test utilities consume these values as preprocessor constants.
 target_compile_definitions(${currentTarget} PUBLIC
     INPUT_DIM=${INPUT_DIM}
     HIDDEN_DIM=${HIDDEN_DIM}
